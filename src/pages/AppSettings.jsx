@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, Wrench, Smartphone, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
-import { subscribeToAppStatus, setMaintenanceMode } from "../services/AppSettings";
+import { subscribeToAppStatus, setMaintenanceMode } from "../services/appSettings";
 
 const DEFAULT_MESSAGE =
     "We're making some updates to the farm management system. Please check back shortly.";
