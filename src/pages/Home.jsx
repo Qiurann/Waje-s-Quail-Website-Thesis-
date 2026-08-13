@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Egg, Package, AlertTriangle, ShieldCheck, Bell } from 'lucide-react';
+import { Egg, Package, AlertTriangle, ShieldCheck, Wrench, ShieldAlert } from 'lucide-react';
 import { db, rtdb } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { ref, onValue } from 'firebase/database';
 import LoadingScreen from '../components/LoadingScreen';
+import { subscribeToAppStatus } from '../services/appSettings';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ export default function Home() {
   const [feedItems, setFeedItems] = useState([]);
   const [recentEggLogs, setRecentEggLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [systemDown, setSystemDown] = useState(false);
 
   // Get user data from local storage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -44,6 +47,9 @@ export default function Home() {
         setRecentEggLogs([]);
       }
       setLoading(false);
+    }, (error) => {
+      console.error("Error listening to egg_collections for Home page:", error);
+      setSystemDown(true);
     });
 
     // 2. Listen to Firestore for Feed Inventory
@@ -66,15 +72,47 @@ export default function Home() {
       console.error("Error fetching feed quantity for Home page:", error);
       setFeedQuantity(0);
       setFeedItems([]);
+      setSystemDown(true);
+    });
+
+    // 3. Listen to App Settings for Maintenance Mode, so the dashboard's
+    // System State card always reflects the live setting from App Settings.
+    const unsubscribeAppStatus = subscribeToAppStatus((status) => {
+      setMaintenanceMode(status.maintenanceMode);
     });
 
     return () => {
       unsubscribeRtdb();
       unsubscribeFeed();
+      unsubscribeAppStatus();
     };
   }, []);
 
   const lowStockItems = feedItems.filter((item) => item.status === 'Low Stock');
+
+  // System State reflects the live app_status doc (App Settings ->
+  // Maintenance Mode) plus whether the dashboard's own Firestore/RTDB
+  // listeners are actually connected.
+  const systemState = maintenanceMode
+    ? {
+        value: 'Maintenance Mode',
+        icon: Wrench,
+        iconBg: 'bg-amber-100',
+        iconColor: 'text-amber-600',
+      }
+    : systemDown
+    ? {
+        value: 'System Down',
+        icon: ShieldAlert,
+        iconBg: 'bg-red-100',
+        iconColor: 'text-red-600',
+      }
+    : {
+        value: 'Operational',
+        icon: ShieldCheck,
+        iconBg: 'bg-purple-100',
+        iconColor: 'text-purple-600',
+      };
 
   const statCards = [
     {
@@ -105,11 +143,11 @@ export default function Home() {
       badgeBg: 'bg-red-600',
     },
     {
-      label: 'System Health',
-      value: 'Good',
-      icon: ShieldCheck,
-      iconBg: 'bg-purple-100',
-      iconColor: 'text-purple-600',
+      label: 'System State',
+      value: systemState.value,
+      icon: systemState.icon,
+      iconBg: systemState.iconBg,
+      iconColor: systemState.iconColor,
       badge: 'Status',
       badgeBg: 'bg-purple-600',
     },
@@ -136,33 +174,13 @@ export default function Home() {
                     <Icon className={`w-5 h-5 ${card.iconColor}`} />
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-gray-900">{card.value}</div>
+                <div className={`font-bold text-gray-900 ${String(card.value).length > 10 ? 'text-xl' : 'text-3xl'}`}>{card.value}</div>
               </div>
             );
           })}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Alerts & Notifications */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <Bell className="w-5 h-5 text-amber-500" />
-              <h3 className="font-bold text-gray-900">Alerts & Notifications</h3>
-            </div>
-            {lowStockItems.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
-                {lowStockItems.map((item) => (
-                  <li key={item.id} className="flex items-center gap-3 py-3 text-sm text-gray-700">
-                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0" />
-                    {item.name} is below reorder level
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-gray-400 py-2">All stock levels are healthy right now.</p>
-            )}
-          </div>
-
+        <div className="grid grid-cols-1 gap-6">
           {/* Recent Activity */}
           <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
             <h3 className="font-bold text-gray-900 mb-4">Recent Activity</h3>

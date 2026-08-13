@@ -150,17 +150,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 rounded border-gray-300 text-[#2D5016] focus:ring-[#2D5016]"
-                />
-                <span className="text-sm text-gray-600">Remember me</span>
-              </label>
-            </div>
-
             <button
               type="submit"
               disabled={loading}

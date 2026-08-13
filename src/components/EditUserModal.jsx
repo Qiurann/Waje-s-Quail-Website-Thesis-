@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { updateUser } from "../services/userService";
 import { logActivity, getCurrentActor } from "../services/activityService";
+import { getPasswordErrors, sanitizeNameInput, getNameError } from "../utils/validation";
 
 // The <input type="date"> element only accepts "yyyy-MM-dd". Some existing
 // records (saved from elsewhere, e.g. "2026/06/05") don't match that, which
@@ -58,20 +59,34 @@ export default function EditUserModal({ user, close, reload }) {
     });
 
     const handleChange = (e) => {
+        const { name, value } = e.target;
+
+        // Only letters, spaces, hyphens, apostrophes, and periods are
+        // allowed in the name field — strip anything else as it's typed
+        // (also covers pasted text).
+        const nextValue = name === "name" ? sanitizeNameInput(value) : value;
+
         setForm({
             ...form,
-            [e.target.name]: e.target.value
+            [name]: nextValue
         });
     };
 
     const handleSave = async (e) => {
         e.preventDefault();
 
+        const nameError = getNameError(form.name, "Name");
+        if (nameError) {
+            alert(nameError);
+            return;
+        }
+
         const wantsPasswordChange = form.password.length > 0 || form.confirmPassword.length > 0;
 
         if (wantsPasswordChange) {
-            if (form.password.length < 6) {
-                alert("Password must be at least 6 characters long.");
+            const passwordErrors = getPasswordErrors(form.password);
+            if (passwordErrors.length > 0) {
+                alert(passwordErrors.join("\n"));
                 return;
             }
             if (form.password !== form.confirmPassword) {
