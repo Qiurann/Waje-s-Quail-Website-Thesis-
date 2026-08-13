@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Egg, Package, AlertTriangle, ShieldCheck, Lightbulb, Bell } from 'lucide-react';
+import { Egg, Package, AlertTriangle, ShieldCheck, Bell } from 'lucide-react';
 import { db, rtdb } from '../firebase';
-import { collection, query, limit, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { ref, onValue } from 'firebase/database';
 import LoadingScreen from '../components/LoadingScreen';
 
@@ -13,7 +13,6 @@ export default function Home() {
   const [feedItems, setFeedItems] = useState([]);
   const [recentEggLogs, setRecentEggLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [recommendation, setRecommendation] = useState('Loading daily tips...');
 
   // Get user data from local storage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -69,19 +68,9 @@ export default function Home() {
       setFeedItems([]);
     });
 
-    // 3. Listen to Firestore for AI Recommendations
-    const settingsRef = collection(db, 'system_settings');
-    const unsubscribeSettings = onSnapshot(query(settingsRef, limit(1)), (snapshot) => {
-      if (!snapshot.empty) {
-        const data = snapshot.docs[0].data();
-        setRecommendation(data.daily_recommendation || 'Keep your quails hydrated and happy!');
-      }
-    });
-
     return () => {
       unsubscribeRtdb();
       unsubscribeFeed();
-      unsubscribeSettings();
     };
   }, []);
 
@@ -161,7 +150,7 @@ export default function Home() {
               <h3 className="font-bold text-gray-900">Alerts & Notifications</h3>
             </div>
             {lowStockItems.length > 0 ? (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-gray-200">
                 {lowStockItems.map((item) => (
                   <li key={item.id} className="flex items-center gap-3 py-3 text-sm text-gray-700">
                     <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0" />
@@ -178,7 +167,7 @@ export default function Home() {
           <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
             <h3 className="font-bold text-gray-900 mb-4">Recent Activity</h3>
             {recentEggLogs.length > 0 ? (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-gray-200">
                 {recentEggLogs.map((entry, idx) => (
                   <li key={idx} className="flex items-center justify-between py-3">
                     <div className="flex items-center gap-3">
@@ -196,19 +185,6 @@ export default function Home() {
             ) : (
               <p className="text-sm text-gray-400 py-2">No recent activity logged yet.</p>
             )}
-          </div>
-        </div>
-
-        {/* Smart Recommendation */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-[#2D5016] rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
-              <Lightbulb className="w-6 h-6 text-yellow-400" />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 mb-1">Smart Recommendation</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">{recommendation}</p>
-            </div>
           </div>
         </div>
 

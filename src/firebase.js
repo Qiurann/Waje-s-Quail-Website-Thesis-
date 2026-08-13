@@ -2,9 +2,9 @@
 import { initializeApp } from "firebase/app";
 
 // Firebase services
-import { getFirestore, doc, setDoc, deleteDoc } from "firebase/firestore";
+import { getFirestore, doc, setDoc, deleteDoc, enableNetwork, disableNetwork } from "firebase/firestore";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
-import { getDatabase } from "firebase/database";
+import { getDatabase, goOffline, goOnline } from "firebase/database";
 
 // Your Firebase config
 const firebaseConfig = {
@@ -74,4 +74,28 @@ export async function writeSession({ uid, email, role, status }) {
 export async function clearSession(uid) {
   if (!uid) return;
   await deleteDoc(doc(db, "sessions", uid));
+}
+
+// ── Recover from back/forward-cache (bfcache) restores ──────────────────────
+// When the browser navigates away with the page eligible for bfcache, Chrome
+// freezes JS execution and closes any open WebSockets (both the RTDB socket
+// and Firestore's WebChannel "Listen" stream) out from under the SDKs —
+// neither SDK watches for this itself. On restore, the page resumes with
+// those connections dead, so `onValue`/`onSnapshot` listeners stop receiving
+// updates and the ones that hit an outright error (e.g. Firestore's Listen
+// stream getting a 400 after coming back) can leave listeners stuck.
+// `pageshow` with `event.persisted === true` is the standard signal that the
+// page just came out of bfcache (a normal first load never sets this), so we
+// use it to force both SDKs to drop and re-establish their connections.
+if (typeof window !== "undefined") {
+  window.addEventListener("pageshow", (event) => {
+    if (!event.persisted) return;
+
+    goOffline(rtdb);
+    goOnline(rtdb);
+
+    disableNetwork(db)
+      .then(() => enableNetwork(db))
+      .catch((err) => console.error("Failed to reconnect Firestore after bfcache restore:", err));
+  });
 }

@@ -3,10 +3,8 @@ import {
     getDocs,
     getDoc,
     doc,
-    setDoc,
     updateDoc,
-    deleteDoc,
-    serverTimestamp
+    deleteDoc
 } from "firebase/firestore";
 
 import { db } from "../firebase";
@@ -50,57 +48,10 @@ export const getUser = async (email) => {
 
 };
 
-/* ===========================
-   Add User
-=========================== */
-
-export const addUser = async (user) => {
-
-    const ref = doc(db, "user_access", user.email);
-
-    const exist = await getDoc(ref);
-
-    if (exist.exists()) {
-
-        throw new Error("User already exists.");
-
-    }
-
-    await setDoc(ref, {
-
-        name: user.name,
-
-        email: user.email,
-
-        birthday: user.birthday,
-
-        address: {
-
-            street: user.street,
-
-            city: user.city,
-
-            state: user.state,
-
-            postalCode: user.postalCode
-
-        },
-
-        role: "staff",
-
-        status: "invited",
-
-        setupCompleted: false,
-
-        profilePic: "",
-
-        invitedAt: serverTimestamp(),
-
-        invitedBy: "Owner"
-
-    });
-
-};
+// NOTE: staff account creation ("Invite/Add User") is a mobile-only flow —
+// see NavigationHelper.savePendingUser() in the Android app. The website no
+// longer creates staff accounts, only manages (approve/deactivate/edit/
+// delete) the ones invited from mobile.
 
 /* ===========================
    Update User

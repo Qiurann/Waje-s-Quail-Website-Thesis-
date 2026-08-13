@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase'; // Ensure db is exported from your firebase.js
+import { db, auth, ensureAnonymousAuth, writeSession } from '../firebase'; // Ensure db is exported from your firebase.js
 import { toast } from 'sonner';
 import LoadingScreen from '../components/LoadingScreen';
 import { logActivity } from '../services/activityService';
+import { claimTabForSession } from '../services/sessionGuard';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -31,7 +32,41 @@ export default function Login() {
 
       // Login success
       const userData = querySnapshot.docs[0].data();
-      localStorage.setItem('user', JSON.stringify(userData)); // Basic session management
+
+      // The website is owner-only. Staff accounts are for the mobile app;
+      // block them here before any session doc is written so a staff
+      // login never reaches the dashboard.
+      if (userData.role !== 'owner') {
+        throw new Error('You do not have the authority to access this website. Please use the mobile app instead.');
+      }
+
+      // The Firestore rules key every privileged read/write off
+      // sessions/{uid} (looked up via request.auth.uid), because the app
+      // uses anonymous Firebase Auth for everyone. App.jsx already starts
+      // that anonymous session, but without writing sessions/{uid} here,
+      // isApprovedStaff()/isOwner() in the rules always evaluate false and
+      // every subsequent call (reading feed inventory, updating quantities,
+      // writing activity logs) gets silently rejected with
+      // "Missing or insufficient permissions". Write the session doc now,
+      // using the same uid, so the rules can find it.
+      await ensureAnonymousAuth();
+      const uid = auth.currentUser.uid;
+      await writeSession({
+        uid,
+        email: userData.email,
+        role: userData.role,
+        status: userData.status,
+      });
+
+      // Store uid alongside the profile so Dashboard.handleLogout can call
+      // clearSession(user.uid) to remove the session doc again.
+      const sessionUser = { ...userData, uid };
+      localStorage.setItem('user', JSON.stringify(sessionUser)); // Basic session management
+
+      // Marks this browser tab as the owner of the new session, so the
+      // session guard (App.jsx) knows a later refresh/navigation in this
+      // same tab is not a session end. See services/sessionGuard.js.
+      claimTabForSession(uid);
 
       logActivity({
         type: 'login',

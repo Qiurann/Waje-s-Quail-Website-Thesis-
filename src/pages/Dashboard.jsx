@@ -1,9 +1,10 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, Home, Users, User, LogOut, ShoppingBag, Bell, Activity } from 'lucide-react';
+import { Menu, Home, Users, User, LogOut, ShoppingBag, Activity, Wrench } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { clearSession } from '../firebase';
 import { logActivity } from '../services/activityService';
+import { releaseTabSession } from '../services/sessionGuard';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -21,12 +22,10 @@ export default function Dashboard() {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await clearSession(user?.uid);
-    } catch (err) {
-      console.error('Failed to clear session:', err);
-    }
-
+    // Log the activity BEFORE clearing the session — activity_logs writes
+    // require sessions/{uid} to still exist per the Firestore rules (see
+    // firebase.js). Clearing the session first causes this write to be
+    // silently rejected as a permissions error.
     logActivity({
       type: 'logout',
       message: `${user?.name || user?.email || 'A user'} logged out`,
@@ -35,7 +34,17 @@ export default function Dashboard() {
       role: user?.role,
     });
 
+    try {
+      await clearSession(user?.uid);
+    } catch (err) {
+      console.error('Failed to clear session:', err);
+    }
+
     localStorage.removeItem('user');
+    // Release this tab's session marker so the session guard doesn't try to
+    // record a second (duplicate) Logout if the user later closes this same
+    // tab or refreshes at the login page. See services/sessionGuard.js.
+    releaseTabSession();
     toast.success('Successfully logged out');
     navigate('/');
   };
@@ -43,8 +52,13 @@ export default function Dashboard() {
   const mainNavItems = [
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
     { icon: Users, label: 'User Management', path: '/dashboard/user-management' },
-    { icon: ShoppingBag, label: 'Feed Inventory', path: '/dashboard/feed-inventory' },
+    { icon: ShoppingBag, label: 'Inventory', path: '/dashboard/feed-inventory' },
     { icon: Activity, label: 'Activity Logs', path: '/dashboard/activity-logs' },
+    // Owner-only: controls system_settings/app_status, which gates the
+    // mobile app's login screen. See services/appSettings.js.
+    ...(user?.role === 'owner'
+      ? [{ icon: Wrench, label: 'App Settings', path: '/dashboard/app-settings' }]
+      : []),
   ];
 
   const bottomNavItems = [
@@ -60,14 +74,14 @@ export default function Dashboard() {
         } bg-[#2D5016] text-white transition-all duration-300 flex flex-col`}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-6 border-b-2 border-white/20">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
               <img src="/logo_quailfarm.png" alt="Logo" className="w-7 h-7 object-contain" />
             </div>
             {sidebarOpen && (
               <div>
-                <h1 className="font-bold text-lg leading-tight">Waje's Quail Farm</h1>
+                <h1 className="font-bold text-lg leading-tight text-white whitespace-nowrap">Waje's Quail Farm</h1>
                 <p className="text-xs text-white/60">Farm Management</p>
               </div>
             )}
@@ -98,7 +112,7 @@ export default function Dashboard() {
         </nav>
 
         {/* Bottom Navigation */}
-        <div className="p-4 border-t border-white/10 space-y-1">
+        <div className="p-4 border-t-2 border-white/20 space-y-1">
           {bottomNavItems.map((item) => {
             const Icon = item.icon;
             
@@ -118,7 +132,7 @@ export default function Dashboard() {
         {/* Toggle Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-4 border-t border-white/10 hover:bg-white/10 transition-colors"
+          className="p-4 border-t-2 border-white/20 hover:bg-white/10 transition-colors"
         >
           <Menu className="w-5 h-5 mx-auto" />
         </button>
@@ -127,7 +141,7 @@ export default function Dashboard() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4 shadow-sm">
+        <header className="bg-white border-b-2 border-gray-200 px-8 py-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-400 font-medium mb-0.5">
@@ -144,12 +158,6 @@ export default function Dashboard() {
             </div>
             
             <div className="flex items-center gap-4">
-              {/* Notification Bell */}
-              <button className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-                <Bell className="w-5 h-5 text-gray-500" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
-
               {/* User Profile */}
               <button
                 onClick={() => navigate('/dashboard/profile')}

@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, AlertTriangle, Plus, Package, MapPin, Search } from 'lucide-react';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { ShoppingBag, AlertTriangle, Plus, Package, MapPin, Search, Pencil, Trash2, X } from 'lucide-react';
+import { collection, doc, onSnapshot, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import LoadingScreen from '../components/LoadingScreen';
+import { logActivity, getCurrentActor } from '../services/activityService';
 
 export default function FeedInventory() {
   const [inventoryItems, setInventoryItems] = useState([]);
   const [activeTab, setActiveTab] = useState('All Items');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Quantity-update modal state
+  const [editingItem, setEditingItem] = useState(null);
+  const [newQuantity, setNewQuantity] = useState('');
+  const [savingQuantity, setSavingQuantity] = useState(false);
+  const [quantityError, setQuantityError] = useState('');
 
   // Formatting for Currency (PH)
   const phpCurrency = new Intl.NumberFormat('en-PH', {
@@ -30,7 +37,9 @@ export default function FeedInventory() {
           description: data.description || '',
           category: data.category || 'Feed',
           location: data.location || 'Location Info',
+          unit: data.unit || '',
           quantity: Number(data.quantity || 0),
+          initialQuantity: Number(data.initialQuantity || data.quantity || 0),
           unitPrice: Number(data.unitPrice || 0),
           status: data.status || 'In Stock',
           totalValue: Number(data.quantity || 0) * Number(data.unitPrice || 0)
@@ -63,10 +72,11 @@ export default function FeedInventory() {
 
   const getStatusStyles = (status) => {
     switch (status) {
-      case 'In Stock': return 'bg-green-100 text-green-700 border-green-200';
-      case 'Medium': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'Low Stock': return 'bg-red-100 text-red-700 border-red-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'In Stock': return 'bg-green-50 text-green-700 border-green-100';
+      case 'Medium': return 'bg-orange-50 text-orange-700 border-orange-100';
+      case 'Low Stock': return 'bg-amber-50 text-amber-700 border-amber-100';
+      case 'Out of Stock': return 'bg-red-50 text-red-700 border-red-100';
+      default: return 'bg-gray-50 text-gray-700 border-gray-100';
     }
   };
 
@@ -74,6 +84,124 @@ export default function FeedInventory() {
     if (category === 'Feed') return 'Quantity (Sack)';
     if (category === 'Supplements') return 'Quantity (Bottle)';
     return 'Quantity';
+  };
+
+  const getUnitLabel = (category) => {
+    if (category === 'Feed') return 'Sack';
+    if (category === 'Supplements') return 'Bottle';
+    return 'Unit';
+  };
+
+  // Mirrors the Android app's calculateStatus() so both sides agree on the
+  // same thresholds. The website is the source of truth for `status`: it
+  // recomputes and writes it here; Android only reads it, never overwrites it.
+  const calculateStatus = (qty, initialQty) => {
+    if (initialQty <= 0) return 'In Stock';
+    const ratio = qty / initialQty;
+    if (ratio <= 0.2) return 'Low Stock';
+    if (ratio <= 0.5) return 'Medium';
+    return 'In Stock';
+  };
+
+  const handleDeleteItem = async (item) => {
+    const confirmed = window.confirm(`Delete "${item.name}" from inventory? This cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      await deleteDoc(doc(db, 'farm_data', 'shared', 'feed', item.id));
+
+      const actor = getCurrentActor();
+      await logActivity({
+        type: 'delete',
+        module: 'Inventory',
+        message: `${actor.userName || actor.userEmail || 'Someone'} deleted ${item.name} from inventory`,
+        details: `Removed item: ${item.name} (${item.category})`,
+        ...actor,
+        metadata: {
+          itemId: item.id,
+          itemName: item.name,
+          category: item.category,
+        },
+      });
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      alert('Unable to delete this item. Please try again.');
+    }
+  };
+
+  const openEditQuantity = (item) => {
+    setEditingItem(item);
+    setNewQuantity(String(item.quantity));
+    setQuantityError('');
+  };
+
+  const closeEditQuantity = () => {
+    if (savingQuantity) return;
+    setEditingItem(null);
+    setNewQuantity('');
+    setQuantityError('');
+  };
+
+  const handleUpdateQuantity = async (e) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    const previousQuantity = editingItem.quantity;
+    const parsedQuantity = Number(newQuantity);
+
+    if (newQuantity.trim() === '' || Number.isNaN(parsedQuantity) || parsedQuantity < 0) {
+      setQuantityError('Please enter a valid quantity (0 or greater).');
+      return;
+    }
+
+    if (parsedQuantity === previousQuantity) {
+      // Nothing actually changed — no need to write an update or log it.
+      closeEditQuantity();
+      return;
+    }
+
+    setSavingQuantity(true);
+    setQuantityError('');
+
+    try {
+      const itemRef = doc(db, 'farm_data', 'shared', 'feed', editingItem.id);
+      const newInitialQuantity = parsedQuantity > editingItem.initialQuantity
+        ? parsedQuantity
+        : editingItem.initialQuantity;
+      const newStatus = calculateStatus(parsedQuantity, newInitialQuantity);
+
+      await updateDoc(itemRef, {
+        quantity: parsedQuantity,
+        initialQuantity: newInitialQuantity,
+        status: newStatus,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Every quantity change is automatically recorded in Activity Logs
+      // under the "Updated" category, capturing who made the change, the
+      // previous and new quantities, and the date/time (via serverTimestamp).
+      const actor = getCurrentActor();
+      await logActivity({
+        type: 'update',
+        message: `${actor.userName || actor.userEmail || 'Someone'} updated quantity of ${editingItem.name} from ${previousQuantity} to ${parsedQuantity}`,
+        details: `Previous quantity: ${previousQuantity} → New quantity: ${parsedQuantity}`,
+        ...actor,
+        metadata: {
+          itemId: editingItem.id,
+          itemName: editingItem.name,
+          category: editingItem.category,
+          previousQuantity,
+          newQuantity: parsedQuantity,
+        },
+      });
+
+      closeEditQuantity();
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      setQuantityError('Unable to update quantity. Please try again.');
+    } finally {
+      setSavingQuantity(false);
+    }
   };
 
   return (
@@ -119,87 +247,172 @@ export default function FeedInventory() {
         </div>
       </div>
 
-      {/* Controls: Tabs and Search */}
-      <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
-        <div className="flex bg-gray-200 p-1 rounded-xl">
+      {/* Inventory Table */}
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        {/* Search */}
+        <div className="p-4 border-b-2 border-gray-200">
+          <div className="relative w-full lg:w-96">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search inventory..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border-2 border-gray-300 rounded-xl shadow-sm focus:border-[#2D5016] focus:ring-4 focus:ring-[#2D5016]/10 outline-none transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* Category tabs */}
+        <div className="flex items-center gap-1 px-4 pt-3">
           {['All Items', 'Feed', 'Supplements'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
-                activeTab === tab ? 'bg-[#2D5016] text-white shadow-md' : 'text-gray-600 hover:text-gray-900'
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                activeTab === tab ? 'bg-[#2D5016] text-white' : 'text-gray-500 hover:bg-gray-100'
               }`}
             >
               {tab}
             </button>
           ))}
         </div>
-        <div className="relative w-full lg:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by name, INV, or category..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#2D5016] outline-none"
-          />
+
+        {/* Table */}
+        <div className="overflow-x-auto mt-2">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wide border-b-2 border-gray-300">
+                <th className="px-4 py-2.5">Item</th>
+                <th className="px-4 py-2.5">Category</th>
+                <th className="px-4 py-2.5">Unit</th>
+                <th className="px-4 py-2.5">Qty on Hand</th>
+                <th className="px-4 py-2.5">Status</th>
+                <th className="px-4 py-2.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredItems.map((item) => (
+                <tr key={item.id} className="hover:bg-gray-50/80 transition-colors">
+                  <td className="px-4 py-2.5">
+                    <div className="font-semibold text-gray-900">
+                      {item.name}
+                      <span className="ml-2 font-normal text-xs text-gray-400 font-mono">{item.invNumber}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-gray-500">{item.category}</td>
+                  <td className="px-4 py-2.5 text-gray-500">{item.unit || getUnitLabel(item.category)}</td>
+                  <td className="px-4 py-2.5">
+                    <span className={`font-bold ${item.status === 'In Stock' ? 'text-gray-900' : 'text-amber-600'}`}>
+                      {item.quantity}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getStatusStyles(item.status)}`}>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => openEditQuantity(item)}
+                        title="Edit quantity"
+                        className="p-1.5 text-gray-400 hover:text-[#2D5016] hover:bg-gray-100 rounded-md transition-colors"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteItem(item)}
+                        title="Delete item"
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-gray-100 rounded-md transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {filteredItems.length === 0 && (
+            <p className="text-center text-sm text-gray-400 py-8">No inventory items found.</p>
+          )}
+        </div>
+
+        {/* Summary */}
+        <div className="px-4 py-3 border-t-2 border-gray-200 text-xs text-gray-400">
+          Showing {filteredItems.length} of {inventoryItems.length} items — {lowStockCount} low stock
         </div>
       </div>
+      </div>
 
-      {/* Inventory Grid */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-1" />
-          <h3 className="text-xl font-bold text-gray-900">{filteredItems.length} items found</h3>
-        </div>
+      {/* Update Quantity Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Update Quantity</h3>
+              <button
+                onClick={closeEditQuantity}
+                disabled={savingQuantity}
+                className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          {filteredItems.map((item) => {
-            return (
-              <div key={item.id} className="border border-gray-200 rounded-2xl p-5 hover:border-[#2D5016] hover:shadow-md transition-all">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                      <ShoppingBag className="w-6 h-6 text-[#2D5016]" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-gray-900">{item.name}</h4>
-                      <p className="text-xs text-gray-500 font-mono">{item.invNumber}</p>
-                    </div>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusStyles(item.status)}`}>
-                    {item.status}
-                  </span>
-                </div>
+            <p className="text-sm text-gray-500 mb-4">{editingItem.name}</p>
 
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{item.description}</p>
-
-                <div className="grid grid-cols-3 gap-4 py-4 border-t border-gray-100">
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase font-bold">{getQuantityLabel(item.category)}</p>
-                    <p className="text-lg font-bold text-gray-900">{item.quantity}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase font-bold">Unit Price</p>
-                    <p className="text-lg font-bold text-gray-900">{phpCurrency.format(item.unitPrice)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase font-bold">Total Value</p>
-                    <p className="text-lg font-bold text-[#2D5016]">{phpCurrency.format(item.totalValue)}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <span className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                    <MapPin className="w-3 h-3" /> {item.location}
-                  </span>
-                </div>
+            <form onSubmit={handleUpdateQuantity} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                  Current {getQuantityLabel(editingItem.category)}
+                </label>
+                <div className="text-lg font-bold text-gray-900">{editingItem.quantity}</div>
               </div>
-            );
-          })}
+
+              <div>
+                <label htmlFor="newQuantity" className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                  New {getQuantityLabel(editingItem.category)}
+                </label>
+                <input
+                  id="newQuantity"
+                  type="number"
+                  min="0"
+                  step="1"
+                  autoFocus
+                  value={newQuantity}
+                  onChange={(e) => setNewQuantity(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#2D5016] outline-none"
+                />
+              </div>
+
+              {quantityError && (
+                <p className="text-sm text-red-600">{quantityError}</p>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeEditQuantity}
+                  disabled={savingQuantity}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-bold hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingQuantity}
+                  className="flex-1 py-2.5 rounded-xl bg-[#2D5016] text-white font-bold hover:bg-[#24400f] disabled:opacity-50"
+                >
+                  {savingQuantity ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
-      </div>
+      )}
     </>
   );
 }

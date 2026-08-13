@@ -113,7 +113,7 @@ export default function UserActivity() {
                 )}
 
                 {!loading && filteredLogs.length > 0 && (
-                    <ul className="divide-y divide-gray-50">
+                    <ul className="divide-y divide-gray-200">
                         {filteredLogs.map((log) => {
                             const meta = TYPE_META[log.type] || {
                                 label: log.type || "Activity",
@@ -143,7 +143,7 @@ export default function UserActivity() {
                 )}
 
                 {!loading && filteredLogs.length > 0 && (
-                    <div className="px-6 py-3 text-xs text-gray-400 border-t border-gray-50">
+                    <div className="px-6 py-3 text-xs text-gray-400 border-t-2 border-gray-200">
                         Showing {filteredLogs.length} of {logs.length} recent events
                     </div>
                 )}

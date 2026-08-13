@@ -3,6 +3,41 @@ import { Eye, EyeOff } from "lucide-react";
 import { updateUser } from "../services/userService";
 import { logActivity, getCurrentActor } from "../services/activityService";
 
+// The <input type="date"> element only accepts "yyyy-MM-dd". Some existing
+// records (saved from elsewhere, e.g. "2026/06/05") don't match that, which
+// makes the browser reject the value and log a console error. Normalize
+// whatever we get into "yyyy-MM-dd", or drop it if it can't be parsed.
+function toDateInputValue(raw) {
+    if (!raw) return "";
+
+    if (typeof raw?.toDate === "function") {
+        raw = raw.toDate();
+    }
+
+    if (raw instanceof Date) {
+        if (isNaN(raw.getTime())) return "";
+        return raw.toLocaleDateString("en-CA");
+    }
+
+    if (typeof raw === "string") {
+        const slashMatch = raw.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+        if (slashMatch) {
+            return `${slashMatch[1]}-${slashMatch[2]}-${slashMatch[3]}`;
+        }
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+            return raw;
+        }
+
+        const parsed = new Date(raw);
+        if (!isNaN(parsed.getTime())) {
+            return parsed.toLocaleDateString("en-CA");
+        }
+    }
+
+    return "";
+}
+
 export default function EditUserModal({ user, close, reload }) {
 
     const [loading, setLoading] = useState(false);
@@ -11,7 +46,7 @@ export default function EditUserModal({ user, close, reload }) {
 
     const [form, setForm] = useState({
         name: user.name || "",
-        birthday: user.birthday || "",
+        birthday: toDateInputValue(user.birthday),
         role: user.role || "staff",
         status: user.status || "approved",
         password: "",
@@ -71,7 +106,7 @@ export default function EditUserModal({ user, close, reload }) {
             // Build a human-readable summary of what changed for the audit trail.
             const changedFields = [];
             if (form.name !== (user.name || "")) changedFields.push("name");
-            if (form.birthday !== (user.birthday || "")) changedFields.push("birthday");
+            if (form.birthday !== toDateInputValue(user.birthday)) changedFields.push("birthday");
             if (form.role !== (user.role || "staff")) changedFields.push("role");
             if (form.status !== (user.status || "approved")) changedFields.push("status");
             if (form.street !== (user.address?.street || "")) changedFields.push("street");
@@ -81,8 +116,17 @@ export default function EditUserModal({ user, close, reload }) {
             if (wantsPasswordChange) changedFields.push("password");
 
             const actor = getCurrentActor();
+
+            // TEMP DEBUG — proves whether this exact file is the one running.
+            console.log("FIX-V2 ACTIVE — logActivity payload:", {
+                type: "update",
+                module: "Staff",
+                actor,
+            });
+
             logActivity({
                 type: "update",
+                module: "Staff",
                 message: `${actor.userName || actor.userEmail || "Someone"} updated user ${form.name || user.email} (${user.email})`,
                 targetUserName: form.name || user.name || "",
                 targetUserEmail: user.email,
@@ -92,7 +136,7 @@ export default function EditUserModal({ user, close, reload }) {
                 ...actor,
             });
 
-            alert("User updated successfully.");
+            alert("FIX-V2 ACTIVE — User updated successfully.");
             reload();
             close();
 
@@ -172,7 +216,7 @@ export default function EditUserModal({ user, close, reload }) {
                         </select>
                     </div>
 
-                    <div className="pt-2 border-t">
+                    <div className="pt-2 border-t-2 border-gray-200">
                         <p className="text-sm font-medium text-gray-700 mt-4 mb-1">
                             Change Password
                         </p>

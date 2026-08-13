@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Search, Mail, Pencil, Trash2, Check, Ban, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Pencil, Trash2, Check, Ban, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
-import InviteUserModal from "../components/InviteUserModal";
 import EditUserModal from "../components/EditUserModal";
 
 import {
@@ -33,29 +32,14 @@ const STATUS_LABELS = {
     inactive: "Inactive",
 };
 
-function formatLastLogin(lastLogin) {
-    if (!lastLogin) return "Never logged in";
-    // Firestore Timestamp has a toDate() method; guard for plain values too.
-    const date = typeof lastLogin?.toDate === "function" ? lastLogin.toDate() : new Date(lastLogin);
-    if (Number.isNaN(date.getTime())) return "Never logged in";
-    return date.toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-    });
-}
-
 export default function UserManagement() {
 
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    const [showInvite, setShowInvite] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
-    const [sortBy, setSortBy] = useState("name"); // "name" | "lastLogin"
+    const [sortBy, setSortBy] = useState("name"); // "name"
     const [sortDir, setSortDir] = useState("asc"); // "asc" | "desc"
 
     const loadUsers = async () => {
@@ -84,17 +68,7 @@ export default function UserManagement() {
             );
         })
         .sort((a, b) => {
-            let result = 0;
-            if (sortBy === "name") {
-                result = (a.name || "").localeCompare(b.name || "");
-            } else if (sortBy === "lastLogin") {
-                const toMs = (val) => {
-                    if (!val) return 0;
-                    const date = typeof val?.toDate === "function" ? val.toDate() : new Date(val);
-                    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-                };
-                result = toMs(a.lastLogin) - toMs(b.lastLogin);
-            }
+            const result = (a.name || "").localeCompare(b.name || "");
             return sortDir === "asc" ? result : -result;
         });
 
@@ -123,6 +97,7 @@ export default function UserManagement() {
             const actor = getCurrentActor();
             logActivity({
                 type: "delete",
+                module: "Staff",
                 message: `${actor.userName || actor.userEmail || "Someone"} deleted user ${target?.name || email} (${email})`,
                 ...actor,
             });
@@ -140,6 +115,7 @@ export default function UserManagement() {
             const actor = getCurrentActor();
             logActivity({
                 type: "update",
+                module: "Staff",
                 message: `${actor.userName || actor.userEmail || "Someone"} approved user ${target?.name || email} (${email})`,
                 ...actor,
             });
@@ -157,6 +133,7 @@ export default function UserManagement() {
             const actor = getCurrentActor();
             logActivity({
                 type: "update",
+                module: "Staff",
                 message: `${actor.userName || actor.userEmail || "Someone"} deactivated user ${target?.name || email} (${email})`,
                 ...actor,
             });
@@ -174,15 +151,6 @@ export default function UserManagement() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
                     <p className="text-gray-500 mt-1 text-sm">Manage users and their access roles</p>
-                </div>
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => setShowInvite(true)}
-                        className="flex items-center gap-2 bg-[#2D5016] hover:bg-[#3d6b1f] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
-                    >
-                        <Mail className="w-4 h-4" />
-                        Invite User
-                    </button>
                 </div>
             </div>
 
@@ -202,7 +170,7 @@ export default function UserManagement() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <table className="w-full">
                     <thead>
-                        <tr className="border-b border-gray-100">
+                        <tr className="border-b-2 border-gray-200">
                             <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                                 <button onClick={() => toggleSort("name")} className="flex items-center gap-1.5 hover:text-gray-700 transition-colors">
                                     Name
@@ -211,19 +179,13 @@ export default function UserManagement() {
                             </th>
                             <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Role</th>
                             <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                            <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                <button onClick={() => toggleSort("lastLogin")} className="flex items-center gap-1.5 hover:text-gray-700 transition-colors">
-                                    Last Login
-                                    <SortIcon column="lastLogin" />
-                                </button>
-                            </th>
                             <th className="text-right px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading && (
                             <tr>
-                                <td colSpan="5" className="text-center p-10 text-gray-400 text-sm">
+                                <td colSpan="4" className="text-center p-10 text-gray-400 text-sm">
                                     Loading users...
                                 </td>
                             </tr>
@@ -231,7 +193,7 @@ export default function UserManagement() {
 
                         {!loading && filteredUsers.length === 0 && (
                             <tr>
-                                <td colSpan="5" className="text-center p-10 text-gray-400 text-sm">
+                                <td colSpan="4" className="text-center p-10 text-gray-400 text-sm">
                                     No users found.
                                 </td>
                             </tr>
@@ -239,7 +201,7 @@ export default function UserManagement() {
 
                         {!loading &&
                             filteredUsers.map((user) => (
-                                <tr key={user.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
+                                <tr key={user.id} className="border-b border-gray-200 last:border-0 hover:bg-gray-50/60 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-9 h-9 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-semibold text-sm flex-shrink-0">
@@ -264,10 +226,6 @@ export default function UserManagement() {
                                         >
                                             {STATUS_LABELS[user.status] || user.status}
                                         </span>
-                                    </td>
-
-                                    <td className="px-6 py-4 text-sm text-gray-500">
-                                        {formatLastLogin(user.lastLogin)}
                                     </td>
 
                                     <td className="px-6 py-4">
@@ -315,18 +273,11 @@ export default function UserManagement() {
                 </table>
 
                 {!loading && (
-                    <div className="px-6 py-3 text-xs text-gray-400 border-t border-gray-50">
+                    <div className="px-6 py-3 text-xs text-gray-400 border-t-2 border-gray-200">
                         Showing {filteredUsers.length} of {staffUsers.length} staff users
                     </div>
                 )}
             </div>
-
-            {showInvite && (
-                <InviteUserModal
-                    close={() => setShowInvite(false)}
-                    reload={loadUsers}
-                />
-            )}
 
             {showEdit && selectedUser && (
                 <EditUserModal
