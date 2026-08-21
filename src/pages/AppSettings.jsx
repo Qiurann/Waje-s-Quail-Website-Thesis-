@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, Wrench, Smartphone, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { subscribeToAppStatus, setMaintenanceMode } from "../services/appSettings";
+import { logActivity, getCurrentActor } from "../services/activityService";
 
 const DEFAULT_MESSAGE =
     "We're making some updates to the farm management system. Please check back shortly.";
@@ -51,12 +52,28 @@ function AppSettingsContent({ user }) {
 
     const handleSave = async () => {
         setSaving(true);
+        const wasEnabled = liveEnabled; // state before this save, to detect an actual on/off flip
         try {
             await setMaintenanceMode({
                 enabled,
                 message,
                 updatedBy: user?.name || user?.email || "Unknown",
             });
+
+            // Only the on/off toggle itself is a "maintenance" event — editing
+            // just the message text without flipping the switch isn't logged
+            // here, since that's not what's being tracked.
+            if (enabled !== wasEnabled) {
+                const actor = getCurrentActor();
+                logActivity({
+                    type: "maintenance",
+                    module: "Maintenance",
+                    message: `${actor.userName || actor.userEmail || "Someone"} turned maintenance mode ${enabled ? "ON" : "OFF"}`,
+                    details: enabled ? message : "",
+                    ...actor,
+                });
+            }
+
             toast.success(
                 enabled ? "Maintenance mode turned on" : "Maintenance mode turned off"
             );

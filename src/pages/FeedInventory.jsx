@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, AlertTriangle, Plus, Package, MapPin, Search, Pencil, Trash2, X } from 'lucide-react';
+import { ShoppingBag, AlertTriangle, Plus, Package, MapPin, Search, Pencil, SquarePen, Trash2, X } from 'lucide-react';
 import { collection, doc, onSnapshot, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import LoadingScreen from '../components/LoadingScreen';
@@ -16,6 +16,20 @@ export default function FeedInventory() {
   const [newQuantity, setNewQuantity] = useState('');
   const [savingQuantity, setSavingQuantity] = useState(false);
   const [quantityError, setQuantityError] = useState('');
+
+  // Item-details-edit modal state (everything except invNumber, which is
+  // never editable from the website)
+  const [editingDetailsItem, setEditingDetailsItem] = useState(null);
+  const [detailsForm, setDetailsForm] = useState({
+    name: '',
+    category: 'Feed',
+    description: '',
+    location: '',
+    unit: '',
+    unitPrice: '',
+  });
+  const [savingDetails, setSavingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState('');
 
   // Formatting for Currency (PH)
   const phpCurrency = new Intl.NumberFormat('en-PH', {
@@ -204,6 +218,86 @@ export default function FeedInventory() {
     }
   };
 
+  const openEditDetails = (item) => {
+    setEditingDetailsItem(item);
+    setDetailsForm({
+      name: item.name,
+      category: item.category,
+      description: item.description,
+      location: item.location,
+      unit: item.unit,
+      unitPrice: String(item.unitPrice),
+    });
+    setDetailsError('');
+  };
+
+  const closeEditDetails = () => {
+    if (savingDetails) return;
+    setEditingDetailsItem(null);
+    setDetailsError('');
+  };
+
+  const handleDetailsFieldChange = (field) => (e) => {
+    setDetailsForm((prev) => ({ ...prev, [field]: e.target.value }));
+  };
+
+  const handleUpdateDetails = async (e) => {
+    e.preventDefault();
+    if (!editingDetailsItem) return;
+
+    const trimmedName = detailsForm.name.trim();
+    const parsedUnitPrice = Number(detailsForm.unitPrice);
+
+    if (!trimmedName) {
+      setDetailsError('Please enter an item name.');
+      return;
+    }
+    if (detailsForm.unitPrice.trim() === '' || Number.isNaN(parsedUnitPrice) || parsedUnitPrice < 0) {
+      setDetailsError('Please enter a valid unit price (0 or greater).');
+      return;
+    }
+
+    setSavingDetails(true);
+    setDetailsError('');
+
+    try {
+      const itemRef = doc(db, 'farm_data', 'shared', 'feed', editingDetailsItem.id);
+
+      // invNumber is intentionally never included here — it is not editable
+      // from the website.
+      await updateDoc(itemRef, {
+        name: trimmedName,
+        category: detailsForm.category,
+        description: detailsForm.description.trim(),
+        location: detailsForm.location.trim(),
+        unit: detailsForm.unit.trim(),
+        unitPrice: parsedUnitPrice,
+        updatedAt: serverTimestamp(),
+      });
+
+      const actor = getCurrentActor();
+      await logActivity({
+        type: 'update',
+        module: 'Inventory',
+        message: `${actor.userName || actor.userEmail || 'Someone'} updated details of ${trimmedName}`,
+        details: `Updated item details for ${editingDetailsItem.invNumber}`,
+        ...actor,
+        metadata: {
+          itemId: editingDetailsItem.id,
+          itemName: trimmedName,
+          invNumber: editingDetailsItem.invNumber,
+        },
+      });
+
+      closeEditDetails();
+    } catch (error) {
+      console.error('Error updating item details:', error);
+      setDetailsError('Unable to update item details. Please try again.');
+    } finally {
+      setSavingDetails(false);
+    }
+  };
+
   return (
     <>
       {loading && <LoadingScreen message="Checking feed stock levels..." />}
@@ -258,7 +352,7 @@ export default function FeedInventory() {
               placeholder="Search inventory..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border-2 border-gray-300 rounded-xl shadow-sm focus:border-[#2D5016] focus:ring-4 focus:ring-[#2D5016]/10 outline-none transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border-2 border-gray-300 rounded-xl shadow-sm text-gray-900 placeholder-gray-400 focus:border-[#2D5016] focus:ring-4 focus:ring-[#2D5016]/10 outline-none transition-colors"
             />
           </div>
         </div>
@@ -314,6 +408,13 @@ export default function FeedInventory() {
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => openEditDetails(item)}
+                        title="Edit item details"
+                        className="p-1.5 text-gray-400 hover:text-[#2D5016] hover:bg-gray-100 rounded-md transition-colors"
+                      >
+                        <SquarePen className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => openEditQuantity(item)}
                         title="Edit quantity"
@@ -407,6 +508,135 @@ export default function FeedInventory() {
                   className="flex-1 py-2.5 rounded-xl bg-[#2D5016] text-white font-bold hover:bg-[#24400f] disabled:opacity-50"
                 >
                   {savingQuantity ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Item Details Modal — every field except invNumber, which is
+          not editable from the website */}
+      {editingDetailsItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Edit Item Details</h3>
+              <button
+                onClick={closeEditDetails}
+                disabled={savingDetails}
+                className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-4 font-mono">{editingDetailsItem.invNumber}</p>
+
+            <form onSubmit={handleUpdateDetails} className="space-y-4">
+              <div>
+                <label htmlFor="detailsName" className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                  Name
+                </label>
+                <input
+                  id="detailsName"
+                  type="text"
+                  value={detailsForm.name}
+                  onChange={handleDetailsFieldChange('name')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#2D5016] outline-none"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="detailsCategory" className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                  Category
+                </label>
+                <select
+                  id="detailsCategory"
+                  value={detailsForm.category}
+                  onChange={handleDetailsFieldChange('category')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#2D5016] outline-none bg-white"
+                >
+                  <option value="Feed">Feed</option>
+                  <option value="Supplements">Supplements</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="detailsDescription" className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                  Description
+                </label>
+                <textarea
+                  id="detailsDescription"
+                  value={detailsForm.description}
+                  onChange={handleDetailsFieldChange('description')}
+                  rows={2}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#2D5016] outline-none"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="detailsLocation" className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                  Location
+                </label>
+                <input
+                  id="detailsLocation"
+                  type="text"
+                  value={detailsForm.location}
+                  onChange={handleDetailsFieldChange('location')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#2D5016] outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="detailsUnit" className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                    Unit
+                  </label>
+                  <input
+                    id="detailsUnit"
+                    type="text"
+                    value={detailsForm.unit}
+                    onChange={handleDetailsFieldChange('unit')}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#2D5016] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="detailsUnitPrice" className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                    Unit Price
+                  </label>
+                  <input
+                    id="detailsUnitPrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={detailsForm.unitPrice}
+                    onChange={handleDetailsFieldChange('unitPrice')}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#2D5016] outline-none"
+                  />
+                </div>
+              </div>
+
+              {detailsError && (
+                <p className="text-sm text-red-600">{detailsError}</p>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeEditDetails}
+                  disabled={savingDetails}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-bold hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingDetails}
+                  className="flex-1 py-2.5 rounded-xl bg-[#2D5016] text-white font-bold hover:bg-[#24400f] disabled:opacity-50"
+                >
+                  {savingDetails ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

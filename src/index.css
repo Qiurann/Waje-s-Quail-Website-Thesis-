@@ -4,8 +4,8 @@
    ROOT VARIABLES
 ========================= */
 :root {
-  --text: #e7e7e7;
-  --text-h: #eceaef;
+  --text: #1f2937;
+  --text-h: #111827;
   --bg: #fff;
   --border: #e5e4e7;
   --code-bg: #f4f3ec;
@@ -43,8 +43,11 @@
 ========================= */
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #b5b1b1;
-    --text-h: #2d9142;
+    /* The app's UI is always light (Tailwind bg-white/bg-gray-50 cards
+       everywhere), so text still needs to stay dark here too — this isn't
+       an actual dark theme, just the leftover Vite template variables. */
+    --text: #1f2937;
+    --text-h: #111827;
     --bg: #16171d;
     --border: #2e303a;
     --code-bg: #1f2028;

@@ -18,12 +18,38 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Read straight from the form instead of trusting `email`/`password`
+    // state alone. Browser/password-manager autofill often sets the input's
+    // DOM value without firing a real `input` event, so React's controlled
+    // state can still be '' on the very first submit even though the field
+    // visibly shows the filled-in text — the query below would then run
+    // with blank credentials and fail. FormData always reflects what's
+    // actually in the DOM right now, so this makes the very first submit
+    // reliable regardless of how the fields got filled in.
+    const formData = new FormData(e.currentTarget);
+    const emailValue = (formData.get('email') || email || '').toString().trim();
+    const passwordValue = (formData.get('password') || password || '').toString();
+
     try {
       setLoading(true);
-      
+
+      // App.jsx kicks off anonymous auth once, on first page load. But if
+      // that one-shot attempt failed (e.g. a network hiccup while the page
+      // was loading), auth.currentUser is still null and every Firestore
+      // call below needs it. Calling ensureAnonymousAuth() here re-attempts
+      // it when the earlier attempt failed (see firebase.js) and simply
+      // resolves immediately when it already succeeded, so this is always
+      // safe/cheap and makes a login attempt self-healing instead of
+      // failing forever until the page is refreshed.
+      try {
+        await ensureAnonymousAuth();
+      } catch {
+        throw new Error('Could not connect to the server. Please check your connection and try again.');
+      }
+
       // Query Firestore for the user
       const usersRef = collection(db, 'user_access'); // Match your collection name
-      const q = query(usersRef, where('email', '==', email), where('password', '==', password));
+      const q = query(usersRef, where('email', '==', emailValue), where('password', '==', passwordValue));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
@@ -42,14 +68,14 @@ export default function Login() {
 
       // The Firestore rules key every privileged read/write off
       // sessions/{uid} (looked up via request.auth.uid), because the app
-      // uses anonymous Firebase Auth for everyone. App.jsx already starts
-      // that anonymous session, but without writing sessions/{uid} here,
-      // isApprovedStaff()/isOwner() in the rules always evaluate false and
-      // every subsequent call (reading feed inventory, updating quantities,
-      // writing activity logs) gets silently rejected with
-      // "Missing or insufficient permissions". Write the session doc now,
-      // using the same uid, so the rules can find it.
-      await ensureAnonymousAuth();
+      // uses anonymous Firebase Auth for everyone. Anonymous auth was
+      // already confirmed above, so this just reads the uid — without
+      // writing sessions/{uid} here, isApprovedStaff()/isOwner() in the
+      // rules always evaluate false and every subsequent call (reading feed
+      // inventory, updating quantities, writing activity logs) gets
+      // silently rejected with "Missing or insufficient permissions".
+      // Write the session doc now, using the same uid, so the rules can
+      // find it.
       const uid = auth.currentUser.uid;
       await writeSession({
         uid,
@@ -57,6 +83,21 @@ export default function Login() {
         role: userData.role,
         status: userData.status,
       });
+
+      // Firestore Security Rules cache the result of get()/exists() lookups
+      // used *inside* rules (here, every other collection's rule reads
+      // sessions/{uid} to check isOwner()) for a couple of seconds after the
+      // referenced document changes. writeSession() above already waited for
+      // the write itself to be acknowledged, but the rules engine's cache of
+      // it can still lag just behind that for a moment. Navigating to the
+      // dashboard immediately can land the very first Firestore reads
+      // (inventory, activity logs, etc.) inside that gap, so they come back
+      // "Missing or insufficient permissions" and the page looks broken —
+      // which is exactly what a refresh (and logging in again) fixes, since
+      // by then the rules cache has caught up. A short pause here lets it
+      // catch up before we ever navigate, so the dashboard loads correctly
+      // on the very first try.
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       // Store uid alongside the profile so Dashboard.handleLogout can call
       // clearSession(user.uid) to remove the session doc again.
@@ -115,6 +156,8 @@ export default function Login() {
                 <input
                   type="email"
                   id="email"
+                  name="email"
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
@@ -134,6 +177,8 @@ export default function Login() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
+                  name="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"

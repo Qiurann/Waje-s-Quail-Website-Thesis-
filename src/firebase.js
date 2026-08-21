@@ -35,6 +35,19 @@ export const rtdb = getDatabase(app);
 // checks email/password. Call ensureAnonymousAuth() before touching Firestore.
 let authReadyPromise = null;
 
+// NOTE: if the very first sign-in attempt fails (e.g. a transient network
+// hiccup while the page is loading), we must NOT cache that failure forever.
+// Previously this function memoized `authReadyPromise` unconditionally, so a
+// single failed attempt left every future call resolving to the same
+// rejected promise for the rest of the page's lifetime. App.jsx swallows
+// that rejection and still renders the Login page (so nothing *looks*
+// broken), but auth.currentUser stays null, which makes every login attempt
+// fail — either as a permission-denied Firestore read, or as a TypeError
+// when Login.jsx reads auth.currentUser.uid — until the user does a full
+// page refresh (which resets this module and gives sign-in a fresh chance).
+// That's exactly the "have to try several times" symptom. Clearing the
+// cached promise on failure lets the *next* call retry instead of replaying
+// the same failure indefinitely.
 export function ensureAnonymousAuth() {
   if (!authReadyPromise) {
     authReadyPromise = new Promise((resolve, reject) => {
@@ -48,6 +61,7 @@ export function ensureAnonymousAuth() {
         },
         (err) => {
           unsubscribe();
+          authReadyPromise = null; // allow a future call to retry
           reject(err);
         }
       );
@@ -55,6 +69,7 @@ export function ensureAnonymousAuth() {
       if (!auth.currentUser) {
         signInAnonymously(auth).catch((err) => {
           unsubscribe();
+          authReadyPromise = null; // allow a future call to retry
           reject(err);
         });
       }

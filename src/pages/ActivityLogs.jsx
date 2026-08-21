@@ -9,9 +9,12 @@ import {
     ClipboardList,
     CheckCircle2,
     Egg,
+    Wrench,
     Activity as ActivityIcon,
     Calendar,
     X,
+    ZoomIn,
+    ZoomOut,
 } from "lucide-react";
 import { subscribeToAuditTrail } from "../services/activityService";
 
@@ -24,6 +27,9 @@ const TYPE_META = {
     task_assign: { label: "Task Assigned", icon: ClipboardList, color: "text-indigo-600 bg-indigo-100" },
     task_complete: { label: "Task Completed", icon: CheckCircle2, color: "text-teal-600 bg-teal-100" },
     egg_count: { label: "Egg Count", icon: Egg, color: "text-orange-600 bg-orange-100" },
+    // Maintenance Mode toggled on/off from App Settings — see
+    // pages/AppSettings.jsx handleSave.
+    maintenance: { label: "Maintenance", icon: Wrench, color: "text-purple-600 bg-purple-100" },
 };
 
 const FILTERS = [
@@ -36,6 +42,7 @@ const FILTERS = [
     "task_assign",
     "task_complete",
     "egg_count",
+    "maintenance",
 ];
 
 // Module-based categories shown as sub-filters when the "Deleted" filter is
@@ -122,6 +129,22 @@ export default function ActivityLogs() {
     const [datePreset, setDatePreset] = useState("all");
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
+    // Proof-photo lightbox (task_complete images) — stores the base64 data
+    // of whichever photo is currently open, or null when closed.
+    const [lightboxImage, setLightboxImage] = useState(null);
+    const [lightboxZoomed, setLightboxZoomed] = useState(false);
+
+    useEffect(() => {
+        if (!lightboxImage) return;
+        const onKeyDown = (e) => {
+            if (e.key === "Escape") {
+                setLightboxImage(null);
+                setLightboxZoomed(false);
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [lightboxImage]);
 
     const applyDatePreset = (key) => {
         setDatePreset(key);
@@ -189,7 +212,7 @@ export default function ActivityLogs() {
                         placeholder="Search by user, action, or details..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none transition-all"
+                        className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none transition-all"
                     />
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -375,7 +398,10 @@ export default function ActivityLogs() {
                                         {log.type === "task_complete" && log.imageBase64 && (
                                             <button
                                                 type="button"
-                                                onClick={() => window.open(`data:image/jpeg;base64,${log.imageBase64}`, "_blank")}
+                                                onClick={() => {
+                                                    setLightboxImage(log.imageBase64);
+                                                    setLightboxZoomed(false);
+                                                }}
                                                 className="mt-1.5 block"
                                                 title="View proof photo"
                                             >
@@ -411,6 +437,60 @@ export default function ActivityLogs() {
                     </div>
                 )}
             </div>
+
+            {/* Proof-photo lightbox — click the thumbnail to open, click the
+                image (or the zoom button) to toggle between fit-to-screen and
+                full size, click the backdrop / X / Escape to close. */}
+            {lightboxImage && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+                    onClick={() => {
+                        setLightboxImage(null);
+                        setLightboxZoomed(false);
+                    }}
+                >
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setLightboxImage(null);
+                            setLightboxZoomed(false);
+                        }}
+                        className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors"
+                        title="Close"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setLightboxZoomed((z) => !z);
+                        }}
+                        className="absolute top-4 left-4 flex items-center gap-1.5 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full px-3 py-2 text-xs font-medium transition-colors"
+                        title={lightboxZoomed ? "Zoom out" : "Zoom in"}
+                    >
+                        {lightboxZoomed ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
+                        {lightboxZoomed ? "Zoom out" : "Zoom in"}
+                    </button>
+
+                    <div
+                        className={`max-w-[95vw] max-h-[90vh] ${lightboxZoomed ? "overflow-auto" : "overflow-hidden"}`}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <img
+                            src={`data:image/jpeg;base64,${lightboxImage}`}
+                            alt="Proof of completion"
+                            onClick={() => setLightboxZoomed((z) => !z)}
+                            className={
+                                lightboxZoomed
+                                    ? "max-w-none h-auto cursor-zoom-out"
+                                    : "max-w-[95vw] max-h-[90vh] object-contain cursor-zoom-in rounded-lg"
+                            }
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
