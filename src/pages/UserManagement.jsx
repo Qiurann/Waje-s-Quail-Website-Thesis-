@@ -170,10 +170,6 @@ export default function UserManagement() {
 
     return (
         <div>
-            {/* Header */}
-            <div className="flex justify-between items-start mb-6">
-               
-            </div>
 
             {/* Search */}
             <div className="relative mb-6">
