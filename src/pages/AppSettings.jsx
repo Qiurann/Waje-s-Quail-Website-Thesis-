@@ -91,13 +91,6 @@ function AppSettingsContent({ user }) {
 
     return (
         <div className="max-w-2xl">
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">App Settings</h1>
-                <p className="text-gray-500 mt-1 text-sm">
-                    Controls that apply to the Waje's Quail Farm mobile app.
-                </p>
-            </div>
-
             <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-md p-6">
                 <div className="flex items-start gap-4">
                     <div

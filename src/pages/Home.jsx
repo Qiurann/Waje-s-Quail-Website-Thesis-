@@ -17,10 +17,6 @@ export default function Home() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [systemDown, setSystemDown] = useState(false);
 
-  // Get user data from local storage
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const firstName = (user?.name || user?.fullName || 'Farmer').split(' ')[0];
-
   useEffect(() => {
     // 1. Listen to Realtime Database for Egg Collection
     const eggRef = ref(rtdb, 'egg_collections');
@@ -157,11 +153,6 @@ export default function Home() {
     <>
       {loading && <LoadingScreen message="Preparing your farm overview..." />}
       <div className="space-y-6">
-        {/* Welcome line */}
-        <p className="text-gray-500">
-          Welcome back, <span className="font-semibold text-gray-800">{firstName}</span>
-        </p>
-
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {statCards.map((card) => {
@@ -205,10 +196,6 @@ export default function Home() {
             )}
           </div>
         </div>
-
-        <p className="text-center text-gray-400 text-xs pt-2">
-          Live updates connected to Waje's Quail Farm Database
-        </p>
       </div>
     </>
   );

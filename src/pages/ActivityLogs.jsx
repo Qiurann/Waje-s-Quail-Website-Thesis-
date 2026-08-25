@@ -194,15 +194,6 @@ export default function ActivityLogs() {
 
     return (
         <div>
-            {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Activity Logs</h1>
-                <p className="text-gray-500 mt-1 text-sm">
-                    Full audit trail of user and system events: logins, task assignments,
-                    automated egg counts, and account changes
-                </p>
-            </div>
-
             {/* Search + Filters */}
             <div className="mb-6">
                 <div className="relative mb-3">

@@ -49,7 +49,14 @@ export default function EditUserModal({ user, close, reload }) {
         name: user.name || "",
         birthday: toDateInputValue(user.birthday),
         role: user.role || "staff",
-        status: user.status || "approved",
+        // A single status field now represents the whole lifecycle. If the
+        // account's mobile access was previously deactivated, that takes
+        // priority in the dropdown regardless of the underlying
+        // approved/pending/invited value (which is preserved under the
+        // hood so it can be restored when the account is re-activated).
+        status: user.isActive === false
+            ? "deactivated"
+            : (user.status === "inactive" ? "approved" : (user.status || "approved")),
         password: "",
         confirmPassword: "",
         street: user.address?.street || "",
@@ -59,7 +66,7 @@ export default function EditUserModal({ user, close, reload }) {
     });
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const { name, value, type, checked } = e.target;
 
         // Only letters, spaces, hyphens, apostrophes, and periods are
         // allowed in the name field — strip anything else as it's typed
@@ -68,7 +75,7 @@ export default function EditUserModal({ user, close, reload }) {
 
         setForm({
             ...form,
-            [name]: nextValue
+            [name]: type === "checkbox" ? checked : nextValue
         });
     };
 
@@ -99,11 +106,22 @@ export default function EditUserModal({ user, close, reload }) {
 
         try {
 
+            // "Deactivated" isn't a real lifecycle value on its own — it's
+            // the approved/pending/invited status with mobile access turned
+            // off. Selecting it just flips isActive off and leaves the
+            // underlying status where it was; picking any other option
+            // turns access back on and sets that status.
+            const isDeactivating = form.status === "deactivated";
+            const nextStatus = isDeactivating
+                ? (user.status === "inactive" ? "approved" : (user.status || "approved"))
+                : form.status;
+
             const updateData = {
                 name: form.name,
                 birthday: form.birthday,
                 role: form.role,
-                status: form.status,
+                status: nextStatus,
+                isActive: !isDeactivating,
                 address: {
                     street: form.street,
                     city: form.city,
@@ -123,7 +141,8 @@ export default function EditUserModal({ user, close, reload }) {
             if (form.name !== (user.name || "")) changedFields.push("name");
             if (form.birthday !== toDateInputValue(user.birthday)) changedFields.push("birthday");
             if (form.role !== (user.role || "staff")) changedFields.push("role");
-            if (form.status !== (user.status || "approved")) changedFields.push("status");
+            const previousEffectiveStatus = user.isActive === false ? "deactivated" : (user.status || "approved");
+            if (form.status !== previousEffectiveStatus) changedFields.push("status");
             if (form.street !== (user.address?.street || "")) changedFields.push("street");
             if (form.city !== (user.address?.city || "")) changedFields.push("city");
             if (form.state !== (user.address?.state || "")) changedFields.push("province");
@@ -225,8 +244,8 @@ export default function EditUserModal({ user, close, reload }) {
                             <option value="invited">
                                 Invited
                             </option>
-                            <option value="inactive">
-                                Inactive
+                            <option value="deactivated">
+                                Deactivated
                             </option>
                         </select>
                     </div>
@@ -234,9 +253,6 @@ export default function EditUserModal({ user, close, reload }) {
                     <div className="pt-2 border-t-2 border-gray-200">
                         <p className="text-sm font-medium text-gray-700 mt-4 mb-1">
                             Change Password
-                        </p>
-                        <p className="text-xs text-gray-500 mb-3">
-                            Leave blank to keep the current password.
                         </p>
 
                         <div className="grid grid-cols-2 gap-3">

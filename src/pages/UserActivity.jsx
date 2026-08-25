@@ -65,10 +65,6 @@ export default function UserActivity() {
         <div>
             {/* Header */}
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">User Activity</h1>
-                <p className="text-gray-500 mt-1 text-sm">
-                    Live feed of logins, logouts, and account changes across the system
-                </p>
             </div>
 
             {/* Search + Filters */}

@@ -340,15 +340,20 @@ export const subscribeToAuditTrail = (callback, entryLimit = 150) => {
             if (data && typeof data === "object") {
                 eggLogs = Object.entries(data)
                     .filter(([, entry]) => entry && entry.date)
-                    .map(([key, entry]) => ({
-                        id: `egg-${key}`,
-                        type: "egg_count",
-                        message: `System recorded ${(entry.total || 0).toLocaleString()} eggs collected`,
-                        userName: "System",
-                        userEmail: "",
-                        role: "automated",
-                        timestamp: entry.date,
-                    }))
+                    .map(([key, entry]) => {
+                        const gradeA = entry.gradeA || 0;
+                        const gradeB = entry.gradeB || 0;
+                        const gradeC = entry.gradeC || 0;
+                        return {
+                            id: `egg-${key}`,
+                            type: "egg_count",
+                            message: `Number of egg/s collected: ${(entry.total || 0).toLocaleString()} (Grade A - Normal: ${gradeA}, Grade B - Cracked: ${gradeB}, Grade C - Reject: ${gradeC})`,
+                            userName: "System",
+                            userEmail: "",
+                            role: "automated",
+                            timestamp: entry.date,
+                        };
+                    })
                     // Capped independently to entryLimit (same as
                     // manualLogs/inventoryLogs) since this RTDB read has no
                     // query-level limit of its own — without this, a large

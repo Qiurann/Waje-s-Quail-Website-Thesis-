@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, Pencil, Trash2, Check, Ban, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Pencil, Trash2, Check, Ban, Power, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 import EditUserModal from "../components/EditUserModal";
 
@@ -7,7 +7,8 @@ import {
     getUsers,
     removeUser,
     approveUser,
-    deactivateUser
+    deactivateUser,
+    activateUser
 } from "../services/userService";
 import { logActivity, getCurrentActor } from "../services/activityService";
 
@@ -22,15 +23,20 @@ const STATUS_STYLES = {
     approved: "bg-green-100 text-green-700",
     pending: "bg-yellow-100 text-yellow-700",
     invited: "bg-blue-100 text-blue-700",
-    inactive: "bg-gray-100 text-gray-500",
+    deactivated: "bg-gray-100 text-gray-500",
 };
 
 const STATUS_LABELS = {
-    approved: "Active",
+    approved: "Approved",
     pending: "Pending",
     invited: "Invited",
-    inactive: "Inactive",
+    deactivated: "Deactivated",
 };
+
+// Mobile access (isActive) is no longer shown as its own badge — a
+// deactivated account just shows "Deactivated" in place of its
+// approved/pending/invited status here.
+const effectiveStatus = (user) => (user.isActive === false ? "deactivated" : (user.status || "approved"));
 
 export default function UserManagement() {
 
@@ -144,14 +150,29 @@ export default function UserManagement() {
         }
     };
 
+    const handleActivate = async (email) => {
+        const target = users.find((u) => u.email === email);
+        try {
+            await activateUser(email);
+            const actor = getCurrentActor();
+            logActivity({
+                type: "update",
+                module: "Staff",
+                message: `${actor.userName || actor.userEmail || "Someone"} activated user ${target?.name || email} (${email})`,
+                ...actor,
+            });
+            loadUsers();
+        } catch (err) {
+            console.error(err);
+            alert("Unable to activate user.");
+        }
+    };
+
     return (
         <div>
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-                    <p className="text-gray-500 mt-1 text-sm">Manage users and their access roles</p>
-                </div>
+               
             </div>
 
             {/* Search */}
@@ -221,10 +242,10 @@ export default function UserManagement() {
                                     <td className="px-6 py-4">
                                         <span
                                             className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                                STATUS_STYLES[user.status] || "bg-gray-100 text-gray-500"
+                                                STATUS_STYLES[effectiveStatus(user)] || "bg-gray-100 text-gray-500"
                                             }`}
                                         >
-                                            {STATUS_LABELS[user.status] || user.status}
+                                            {STATUS_LABELS[effectiveStatus(user)] || effectiveStatus(user)}
                                         </span>
                                     </td>
 
@@ -239,7 +260,15 @@ export default function UserManagement() {
                                                     <Check className="w-4 h-4" />
                                                 </button>
                                             )}
-                                            {user.status !== "inactive" && (
+                                            {user.isActive === false ? (
+                                                <button
+                                                    onClick={() => handleActivate(user.email)}
+                                                    title="Reactivate"
+                                                    className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                                >
+                                                    <Power className="w-4 h-4" />
+                                                </button>
+                                            ) : (
                                                 <button
                                                     onClick={() => handleDeactivate(user.email)}
                                                     title="Deactivate"

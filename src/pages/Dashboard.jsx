@@ -1,6 +1,6 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, Home, Users, User, LogOut, ShoppingBag, Activity, Wrench } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { clearSession } from '../firebase';
 import { logActivity } from '../services/activityService';
@@ -14,12 +14,6 @@ export default function Dashboard() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   const handleLogout = async () => {
     // Log the activity BEFORE clearing the session — activity_logs writes
@@ -144,24 +138,15 @@ export default function Dashboard() {
         <header className="bg-white border-b-2 border-gray-200 px-8 py-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-400 font-medium mb-0.5">
-                Waje's Quail Farm <span className="mx-1 text-gray-300">/</span> {mainNavItems.find(item => item.path === location.pathname)?.label || 'Farm Overview'}
-              </p>
               <h2 className="text-2xl font-bold text-gray-900">
                 {mainNavItems.find(item => item.path === location.pathname)?.label || 'Farm Overview'}
               </h2>
-              <p className="text-sm text-gray-600 mt-0.5">
-                {currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                <span className="mx-2 text-gray-300">|</span>
-                <span className="font-mono text-[#2D5016] font-bold">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-              </p>
             </div>
             
             <div className="flex items-center gap-4">
-              {/* User Profile */}
-              <button
-                onClick={() => navigate('/dashboard/profile')}
-                className="flex items-center gap-3 hover:bg-gray-100 rounded-full pl-1 pr-4 py-1 transition-colors"
+              {/* User Profile (display only — not a navigation link) */}
+              <div
+                className="flex items-center gap-3 rounded-full pl-1 pr-4 py-1"
               >
                 <div className="w-10 h-10 bg-[#2D5016] rounded-full flex items-center justify-center overflow-hidden border border-gray-200">
                   {user.profilePic && user.profilePic !== "" ? (
@@ -187,7 +172,7 @@ export default function Dashboard() {
                      'Farm Staff'}
                   </p>
                 </div>
-              </button>
+              </div>
             </div>
           </div>
         </header>

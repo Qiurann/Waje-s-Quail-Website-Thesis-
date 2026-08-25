@@ -143,8 +143,6 @@ export default function Login() {
 
         {/* Login Card */}
         <div className="bg-white rounded-3xl shadow-2xl p-8">
-          <h2 className="text-2xl font-bold text-[#2D5016] mb-2">Welcome Back!</h2>
-          <p className="text-gray-600 mb-6">Sign in to manage your farm</p>
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Input */}
             <div>

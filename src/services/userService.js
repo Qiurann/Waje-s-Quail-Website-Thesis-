@@ -100,7 +100,11 @@ export const approveUser = async (
 };
 
 /* ===========================
-   Deactivate User
+   Deactivate User — shown in the UI as the "Deactivated" status
+   (replacing the old separate approved/pending/invited status +
+   Active/Inactive mobile-access toggle with one combined status).
+   Deactivated accounts cannot sign in to the mobile app. Website login
+   is owner-only and unaffected by this flag.
 =========================== */
 
 export const deactivateUser = async (
@@ -115,7 +119,32 @@ export const deactivateUser = async (
 
         {
 
-            status: "inactive"
+            isActive: false
+
+        }
+
+    );
+
+};
+
+/* ===========================
+   Activate User — restores the "Deactivated" status back to an
+   active/usable account (mobile app access).
+=========================== */
+
+export const activateUser = async (
+
+    email
+
+) => {
+
+    await updateDoc(
+
+        doc(db, "user_access", email),
+
+        {
+
+            isActive: true
 
         }
 
