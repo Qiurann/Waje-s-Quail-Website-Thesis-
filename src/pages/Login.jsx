@@ -104,6 +104,12 @@ export default function Login() {
       const sessionUser = { ...userData, uid };
       localStorage.setItem('user', JSON.stringify(sessionUser)); // Basic session management
 
+      // Tells Dashboard this is a fresh login (as opposed to a refresh or
+      // in-app navigation) so it can start with the sidebar collapsed
+      // instead of remembering whatever state it was left in. Read once
+      // and cleared by Dashboard on mount — see Dashboard.jsx.
+      sessionStorage.setItem('justLoggedIn', '1');
+
       // Marks this browser tab as the owner of the new session, so the
       // session guard (App.jsx) knows a later refresh/navigation in this
       // same tab is not a session end. See services/sessionGuard.js.

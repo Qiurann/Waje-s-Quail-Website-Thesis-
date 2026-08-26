@@ -304,43 +304,39 @@ export default function FeedInventory() {
       <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-2xl p-6">
-          <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Value</div>
-          <div className="text-2xl font-extrabold text-blue-700 mb-1">{phpCurrency.format(totalInventoryValue)}</div>
-          <div className="text-sm text-gray-500">Total Inventory Value</div>
+        <div className="bg-white border border-gray-300 border-l-4 border-l-blue-500 rounded-2xl p-6 shadow-sm">
+          <div className="text-xs font-bold uppercase tracking-wide text-gray-700 mb-3">Total Inventory Value</div>
+          <div className="text-2xl font-extrabold text-blue-700">{phpCurrency.format(totalInventoryValue)}</div>
         </div>
 
-        <div className="bg-white border border-gray-200 border-l-4 border-l-green-500 rounded-2xl p-6">
-          <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Items</div>
-          <div className="text-3xl font-extrabold text-green-700 mb-1">{inventoryItems.length}</div>
-          <div className="text-sm text-gray-500">Total Items</div>
+        <div className="bg-white border border-gray-300 border-l-4 border-l-green-500 rounded-2xl p-6 shadow-sm">
+          <div className="text-xs font-bold uppercase tracking-wide text-gray-700 mb-3">Total Items</div>
+          <div className="text-4xl font-extrabold text-green-700">{inventoryItems.length}</div>
         </div>
 
-        <div className="bg-white border border-gray-200 border-l-4 border-l-red-500 rounded-2xl p-6">
-          <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Alert</div>
-          <div className="text-3xl font-extrabold text-red-700 mb-1">{lowStockCount}</div>
-          <div className="text-sm text-gray-500">Low Stock Items</div>
+        <div className="bg-white border border-gray-300 border-l-4 border-l-red-500 rounded-2xl p-6 shadow-sm">
+          <div className="text-xs font-bold uppercase tracking-wide text-gray-700 mb-3">Low Stock Items</div>
+          <div className="text-4xl font-extrabold text-red-700">{lowStockCount}</div>
         </div>
 
-        <div className="bg-white border border-gray-200 border-l-4 border-l-purple-500 rounded-2xl p-6">
-          <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Locations</div>
-          <div className="text-3xl font-extrabold text-purple-700 mb-1">{uniqueLocations}</div>
-          <div className="text-sm text-gray-500">Stored Locations</div>
+        <div className="bg-white border border-gray-300 border-l-4 border-l-purple-500 rounded-2xl p-6 shadow-sm">
+          <div className="text-xs font-bold uppercase tracking-wide text-gray-700 mb-3">Stored Locations</div>
+          <div className="text-4xl font-extrabold text-purple-700">{uniqueLocations}</div>
         </div>
       </div>
 
       {/* Inventory Table */}
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-gray-300 rounded-2xl shadow-sm overflow-hidden">
         {/* Search */}
-        <div className="p-4 border-b-2 border-gray-200">
+        <div className="p-4 border-b-2 border-gray-300">
           <div className="relative w-full lg:w-96">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-500" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-700" />
             <input
               type="text"
               placeholder="Search inventory..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border-2 border-gray-300 rounded-xl shadow-sm text-gray-900 placeholder-gray-400 focus:border-[#2D5016] focus:ring-4 focus:ring-[#2D5016]/10 outline-none transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border-2 border-gray-400 rounded-xl shadow-sm text-gray-900 placeholder-gray-600 focus:border-[#2D5016] focus:ring-4 focus:ring-[#2D5016]/10 outline-none transition-colors"
             />
           </div>
         </div>
@@ -352,7 +348,7 @@ export default function FeedInventory() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeTab === tab ? 'bg-[#2D5016] text-white' : 'text-gray-500 hover:bg-gray-100'
+                activeTab === tab ? 'bg-[#2D5016] text-white' : 'text-gray-900 hover:bg-gray-100'
               }`}
             >
               {tab}
@@ -364,7 +360,7 @@ export default function FeedInventory() {
         <div className="overflow-x-auto mt-2">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wide border-b-2 border-gray-300">
+              <tr className="bg-gray-100 text-left text-xs font-bold text-gray-900 uppercase tracking-wide border-b-2 border-gray-400">
                 <th className="px-4 py-2.5">Item</th>
                 <th className="px-4 py-2.5">Category</th>
                 <th className="px-4 py-2.5">Unit</th>
@@ -373,17 +369,17 @@ export default function FeedInventory() {
                 <th className="px-4 py-2.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-300">
               {filteredItems.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50/80 transition-colors">
                   <td className="px-4 py-2.5">
                     <div className="font-semibold text-gray-900">
                       {item.name}
-                      <span className="ml-2 font-normal text-xs text-gray-400 font-mono">{item.invNumber}</span>
+                      <span className="ml-2 font-normal text-xs text-gray-700 font-mono">{item.invNumber}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-2.5 text-gray-500">{item.category}</td>
-                  <td className="px-4 py-2.5 text-gray-500">{item.unit || getUnitLabel(item.category)}</td>
+                  <td className="px-4 py-2.5 text-gray-900">{item.category}</td>
+                  <td className="px-4 py-2.5 text-gray-900">{item.unit || getUnitLabel(item.category)}</td>
                   <td className="px-4 py-2.5">
                     <span className={`font-bold ${item.status === 'In Stock' ? 'text-gray-900' : 'text-amber-600'}`}>
                       {item.quantity}
@@ -399,21 +395,21 @@ export default function FeedInventory() {
                       <button
                         onClick={() => openEditDetails(item)}
                         title="Edit item details"
-                        className="p-1.5 text-gray-400 hover:text-[#2D5016] hover:bg-gray-100 rounded-md transition-colors"
+                        className="p-1.5 text-gray-700 hover:text-[#2D5016] hover:bg-gray-100 rounded-md transition-colors"
                       >
                         <SquarePen className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => openEditQuantity(item)}
                         title="Edit quantity"
-                        className="p-1.5 text-gray-400 hover:text-[#2D5016] hover:bg-gray-100 rounded-md transition-colors"
+                        className="p-1.5 text-gray-700 hover:text-[#2D5016] hover:bg-gray-100 rounded-md transition-colors"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteItem(item)}
                         title="Delete item"
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-gray-100 rounded-md transition-colors"
+                        className="p-1.5 text-gray-700 hover:text-red-600 hover:bg-gray-100 rounded-md transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -425,12 +421,12 @@ export default function FeedInventory() {
           </table>
 
           {filteredItems.length === 0 && (
-            <p className="text-center text-sm text-gray-400 py-8">No inventory items found.</p>
+            <p className="text-center text-sm text-gray-700 py-8">No inventory items found.</p>
           )}
         </div>
 
         {/* Summary */}
-        <div className="px-4 py-3 border-t-2 border-gray-200 text-xs text-gray-400">
+        <div className="px-4 py-3 border-t-2 border-gray-300 text-xs text-gray-800">
           Showing {filteredItems.length} of {inventoryItems.length} items — {lowStockCount} low stock
         </div>
       </div>
@@ -451,7 +447,7 @@ export default function FeedInventory() {
               </button>
             </div>
 
-            <p className="text-sm text-gray-500 mb-4">{editingItem.name}</p>
+            <p className="text-sm text-gray-700 mb-4">{editingItem.name}</p>
 
             <form onSubmit={handleUpdateQuantity} className="space-y-4">
               <div>
@@ -519,7 +515,7 @@ export default function FeedInventory() {
               </button>
             </div>
 
-            <p className="text-sm text-gray-500 mb-4 font-mono">{editingDetailsItem.invNumber}</p>
+            <p className="text-sm text-gray-700 mb-4 font-mono">{editingDetailsItem.invNumber}</p>
 
             <form onSubmit={handleUpdateDetails} className="space-y-4">
               <div>

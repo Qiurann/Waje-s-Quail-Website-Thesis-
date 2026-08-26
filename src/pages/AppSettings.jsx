@@ -16,8 +16,8 @@ export default function AppSettings() {
     if (user?.role !== "owner") {
         return (
             <div className="max-w-lg mx-auto text-center p-10">
-                <ShieldAlert className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">
+                <ShieldAlert className="w-10 h-10 text-gray-500 mx-auto mb-3" />
+                <p className="text-gray-700 text-sm">
                     App Settings is only available to the farm owner.
                 </p>
             </div>
@@ -86,12 +86,12 @@ function AppSettingsContent({ user }) {
     };
 
     if (loading) {
-        return <div className="text-center p-10 text-gray-400 text-sm">Loading settings...</div>;
+        return <div className="text-center p-10 text-gray-700 text-sm">Loading settings...</div>;
     }
 
     return (
         <div className="max-w-2xl">
-            <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-md p-6">
+            <div className="bg-white rounded-2xl border-2 border-gray-400 shadow-md p-6">
                 <div className="flex items-start gap-4">
                     <div
                         className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -104,6 +104,10 @@ function AppSettingsContent({ user }) {
                         <div className="flex items-center justify-between gap-4">
                             <div>
                                 <p className="font-semibold text-gray-900">Maintenance Mode</p>
+                                <p className="text-xs text-gray-700 mt-0.5 flex items-center gap-1.5">
+                                    <Smartphone className="w-3.5 h-3.5" />
+                                    Blocks the mobile app's login screen while it's on
+                                </p>
                             </div>
 
                             {/* Toggle */}
@@ -132,14 +136,14 @@ function AppSettingsContent({ user }) {
                             }`}
                         >
                             <span className={`w-1.5 h-1.5 rounded-full ${liveEnabled ? "bg-amber-500" : "bg-green-500"}`} />
-                            Currently {liveEnabled ? "ON: the mobile app is blocked" : "OFF: the mobile app is accessible"}
+                            Currently {liveEnabled ? "ON — the mobile app is blocked" : "OFF — the mobile app is accessible"}
                             {liveUpdatedBy ? ` · last changed by ${liveUpdatedBy}` : ""}
                         </div>
                     </div>
                 </div>
 
                 <div className="mt-5">
-                    <label className="text-sm font-medium text-gray-700">
+                    <label className="text-sm font-bold text-gray-900">
                         Message shown to users
                     </label>
                     <textarea
@@ -147,7 +151,7 @@ function AppSettingsContent({ user }) {
                         onChange={(e) => setMessage(e.target.value)}
                         rows={3}
                         placeholder={DEFAULT_MESSAGE}
-                        className="mt-1.5 w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none transition-all text-sm resize-none"
+                        className="mt-1.5 w-full px-4 py-3 border-2 border-gray-400 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none transition-all text-sm resize-none"
                     />
                 </div>
 
@@ -156,7 +160,8 @@ function AppSettingsContent({ user }) {
                         <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                         <span>
                             Turning this on will immediately stop anyone from logging into the
-                            mobile app.
+                            mobile app. Staff already inside the app right now won't be kicked
+                            out — this only blocks new sign-ins.
                         </span>
                     </div>
                 )}

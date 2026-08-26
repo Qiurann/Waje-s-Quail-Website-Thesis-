@@ -174,36 +174,36 @@ export default function UserManagement() {
 
             {/* Search */}
             <div className="relative mb-6">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-700" />
                 <input
                     type="text"
                     placeholder="Search users..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none transition-all"
+                    className="w-full pl-11 pr-4 py-3 border-2 border-gray-400 rounded-xl bg-white text-gray-900 placeholder-gray-600 focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none transition-all"
                 />
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-300 shadow-sm overflow-hidden">
                 <table className="w-full">
                     <thead>
-                        <tr className="border-b-2 border-gray-200">
-                            <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        <tr className="bg-gray-100 border-b-2 border-gray-400">
+                            <th className="text-left px-6 py-4 text-xs font-bold text-gray-900 uppercase tracking-wide">
                                 <button onClick={() => toggleSort("name")} className="flex items-center gap-1.5 hover:text-gray-700 transition-colors">
                                     Name
                                     <SortIcon column="name" />
                                 </button>
                             </th>
-                            <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Role</th>
-                            <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                            <th className="text-right px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+                            <th className="text-left px-6 py-4 text-xs font-bold text-gray-900 uppercase tracking-wide">Role</th>
+                            <th className="text-left px-6 py-4 text-xs font-bold text-gray-900 uppercase tracking-wide">Status</th>
+                            <th className="text-right px-6 py-4 text-xs font-bold text-gray-900 uppercase tracking-wide">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading && (
                             <tr>
-                                <td colSpan="4" className="text-center p-10 text-gray-400 text-sm">
+                                <td colSpan="4" className="text-center p-10 text-gray-700 text-sm">
                                     Loading users...
                                 </td>
                             </tr>
@@ -211,7 +211,7 @@ export default function UserManagement() {
 
                         {!loading && filteredUsers.length === 0 && (
                             <tr>
-                                <td colSpan="4" className="text-center p-10 text-gray-400 text-sm">
+                                <td colSpan="4" className="text-center p-10 text-gray-700 text-sm">
                                     No users found.
                                 </td>
                             </tr>
@@ -219,7 +219,7 @@ export default function UserManagement() {
 
                         {!loading &&
                             filteredUsers.map((user) => (
-                                <tr key={user.id} className="border-b border-gray-200 last:border-0 hover:bg-gray-50/60 transition-colors">
+                                <tr key={user.id} className="border-b border-gray-300 last:border-0 hover:bg-gray-50/60 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-9 h-9 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-semibold text-sm flex-shrink-0">
@@ -227,12 +227,12 @@ export default function UserManagement() {
                                             </div>
                                             <div>
                                                 <div className="font-semibold text-gray-900 text-sm">{user.name || "Unnamed"}</div>
-                                                <div className="text-xs text-gray-400">{user.email}</div>
+                                                <div className="text-xs text-gray-700">{user.email}</div>
                                             </div>
                                         </div>
                                     </td>
 
-                                    <td className="px-6 py-4 text-sm text-gray-700">
+                                    <td className="px-6 py-4 text-sm text-gray-900">
                                         {ROLE_LABELS[user.role] || user.role || "Staff"}
                                     </td>
 
@@ -252,7 +252,7 @@ export default function UserManagement() {
                                                 <button
                                                     onClick={() => handleApprove(user.email)}
                                                     title="Approve"
-                                                    className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                    className="p-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                                                 >
                                                     <Check className="w-4 h-4" />
                                                 </button>
@@ -261,7 +261,7 @@ export default function UserManagement() {
                                                 <button
                                                     onClick={() => handleActivate(user.email)}
                                                     title="Reactivate"
-                                                    className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                                    className="p-2 text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                                                 >
                                                     <Power className="w-4 h-4" />
                                                 </button>
@@ -269,7 +269,7 @@ export default function UserManagement() {
                                                 <button
                                                     onClick={() => handleDeactivate(user.email)}
                                                     title="Deactivate"
-                                                    className="p-2 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                                                    className="p-2 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
                                                 >
                                                     <Ban className="w-4 h-4" />
                                                 </button>
@@ -280,14 +280,14 @@ export default function UserManagement() {
                                                     setShowEdit(true);
                                                 }}
                                                 title="Edit"
-                                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                className="p-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                             >
                                                 <Pencil className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(user.email)}
                                                 title="Delete"
-                                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-2 text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -299,7 +299,7 @@ export default function UserManagement() {
                 </table>
 
                 {!loading && (
-                    <div className="px-6 py-3 text-xs text-gray-400 border-t-2 border-gray-200">
+                    <div className="px-6 py-3 text-xs text-gray-800 border-t-2 border-gray-300">
                         Showing {filteredUsers.length} of {staffUsers.length} staff users
                     </div>
                 )}

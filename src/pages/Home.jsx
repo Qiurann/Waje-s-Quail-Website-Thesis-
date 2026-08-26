@@ -175,9 +175,9 @@ export default function Home() {
           {statCards.map((card) => (
             <div
               key={card.label}
-              className={`bg-white border border-gray-100 border-l-4 ${card.accent} rounded-2xl p-6 shadow-sm`}
+              className={`bg-white border border-gray-300 border-l-4 ${card.accent} rounded-2xl p-6 shadow-sm`}
             >
-              <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">{card.label}</div>
+              <div className="text-xs font-bold uppercase tracking-wide text-gray-700 mb-3">{card.label}</div>
               <div className={`font-extrabold ${card.valueColor} ${String(card.value).length > 10 ? 'text-2xl' : 'text-4xl'}`}>
                 {card.value}
               </div>
@@ -187,10 +187,10 @@ export default function Home() {
 
         <div className="grid grid-cols-1 gap-6">
           {/* Recent Activity */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+          <div className="bg-white border border-gray-300 rounded-2xl p-6 shadow-sm">
             <h3 className="font-bold text-gray-900 mb-4">Recent Activity</h3>
             {recentActivity.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-gray-300">
                 {recentActivity.map((entry) => {
                   const meta = TYPE_META[entry.type] || { label: entry.type || 'Activity', color: 'bg-gray-100 text-gray-700' };
                   return (
@@ -199,17 +199,17 @@ export default function Home() {
                         <span className={`text-xs font-semibold ${meta.color} px-2 py-1 rounded-md whitespace-nowrap`}>
                           {meta.label}
                         </span>
-                        <span className="text-sm text-gray-700 truncate">
+                        <span className="text-sm text-gray-900 truncate">
                           {entry.message}
                         </span>
                       </div>
-                      <span className="text-xs text-gray-400 whitespace-nowrap">{formatEntryDate(entry.timestamp)}</span>
+                      <span className="text-xs text-gray-800 whitespace-nowrap">{formatEntryDate(entry.timestamp)}</span>
                     </li>
                   );
                 })}
               </ul>
             ) : (
-              <p className="text-sm text-gray-400 py-2">No recent activity logged yet.</p>
+              <p className="text-sm text-gray-700 py-2">No recent activity logged yet.</p>
             )}
           </div>
         </div>

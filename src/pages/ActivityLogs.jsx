@@ -197,13 +197,13 @@ export default function ActivityLogs() {
             {/* Search + Filters */}
             <div className="mb-6">
                 <div className="relative mb-3">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-700" />
                     <input
                         type="text"
                         placeholder="Search by user, action, or details..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none transition-all"
+                        className="w-full pl-11 pr-4 py-3 border-2 border-gray-400 rounded-xl bg-white text-gray-900 placeholder-gray-600 focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none transition-all"
                     />
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -219,7 +219,7 @@ export default function ActivityLogs() {
                             className={`px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                                 filter === f
                                     ? "bg-[#2D5016] text-white"
-                                    : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                                    : "bg-white border-2 border-gray-400 text-gray-900 hover:bg-gray-50"
                             }`}
                         >
                             {f === "all" ? "All" : TYPE_META[f]?.label || f}
@@ -229,6 +229,7 @@ export default function ActivityLogs() {
 
                 {/* Date range */}
                 <div className="flex flex-wrap items-center gap-2 mt-3">
+                    <Calendar className="w-4 h-4 text-gray-700 flex-shrink-0" />
                     <select
                         value={datePreset === "custom" ? "custom" : datePreset}
                         onChange={(e) => {
@@ -243,7 +244,7 @@ export default function ActivityLogs() {
                             }
                             applyDatePreset(key);
                         }}
-                        className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none cursor-pointer"
+                        className="px-3 py-1.5 rounded-full text-xs font-semibold border-2 border-gray-400 text-gray-900 bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none cursor-pointer"
                     >
                         {DATE_PRESETS.map((p) => (
                             <option key={p.key} value={p.key}>
@@ -253,7 +254,7 @@ export default function ActivityLogs() {
                         <option value="custom">Custom range</option>
                     </select>
 
-                    <span className="text-xs text-gray-400 mx-1">from</span>
+                    <span className="text-xs text-gray-700 mx-1">from</span>
 
                     <input
                         type="date"
@@ -263,9 +264,9 @@ export default function ActivityLogs() {
                             setDateFrom(e.target.value);
                             setDatePreset("custom");
                         }}
-                        className="px-3 py-1.5 rounded-full text-xs border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none"
+                        className="px-3 py-1.5 rounded-full text-xs border-2 border-gray-400 text-gray-900 bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none"
                     />
-                    <span className="text-xs text-gray-400">to</span>
+                    <span className="text-xs text-gray-700">to</span>
                     <input
                         type="date"
                         value={dateTo}
@@ -274,13 +275,13 @@ export default function ActivityLogs() {
                             setDateTo(e.target.value);
                             setDatePreset("custom");
                         }}
-                        className="px-3 py-1.5 rounded-full text-xs border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none"
+                        className="px-3 py-1.5 rounded-full text-xs border-2 border-gray-400 text-gray-900 bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none"
                     />
 
                     {(dateFrom || dateTo) && (
                         <button
                             onClick={() => applyDatePreset("all")}
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                         >
                             <X className="w-3.5 h-3.5" />
                             Clear
@@ -299,7 +300,7 @@ export default function ActivityLogs() {
                             className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors ${
                                 deleteModule === m
                                     ? "bg-red-600 border-red-600 text-white"
-                                    : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                                    : "bg-white border-gray-400 text-gray-900 hover:bg-gray-50"
                             }`}
                         >
                             {m === "all" ? "All modules" : m}
@@ -318,7 +319,7 @@ export default function ActivityLogs() {
                             className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors ${
                                 createModule === m
                                     ? "bg-blue-600 border-blue-600 text-white"
-                                    : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                                    : "bg-white border-gray-400 text-gray-900 hover:bg-gray-50"
                             }`}
                         >
                             {m === "all" ? "All modules" : m}
@@ -337,7 +338,7 @@ export default function ActivityLogs() {
                             className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors ${
                                 updateModule === m
                                     ? "bg-amber-600 border-amber-600 text-white"
-                                    : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                                    : "bg-white border-gray-400 text-gray-900 hover:bg-gray-50"
                             }`}
                         >
                             {m === "all" ? "All modules" : m}
@@ -347,19 +348,19 @@ export default function ActivityLogs() {
             )}
 
             {/* Activity Feed */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-300 shadow-sm overflow-hidden">
                 {loading && (
-                    <div className="text-center p-10 text-gray-400 text-sm">Loading activity...</div>
+                    <div className="text-center p-10 text-gray-700 text-sm">Loading activity...</div>
                 )}
 
                 {!loading && filteredLogs.length === 0 && (
-                    <div className="text-center p-10 text-gray-400 text-sm">
+                    <div className="text-center p-10 text-gray-700 text-sm">
                         No activity found{(dateFrom || dateTo) ? " for this date range" : ""}.
                     </div>
                 )}
 
                 {!loading && filteredLogs.length > 0 && (
-                    <ul className="divide-y divide-gray-200">
+                    <ul className="divide-y divide-gray-300">
                         {filteredLogs.map((log) => {
                             const meta = TYPE_META[log.type] || {
                                 label: log.type || "Activity",
@@ -393,7 +394,7 @@ export default function ActivityLogs() {
                                             )}
                                         </p>
                                         {log.details && (
-                                            <p className="text-xs text-gray-500 mt-0.5">{log.details}</p>
+                                            <p className="text-xs text-gray-700 mt-0.5">{log.details}</p>
                                         )}
                                         {log.type === "task_complete" && log.imageBase64 && (
                                             <button
@@ -408,13 +409,13 @@ export default function ActivityLogs() {
                                                 <img
                                                     src={`data:image/jpeg;base64,${log.imageBase64}`}
                                                     alt="Proof of completion"
-                                                    className="w-12 h-12 rounded-lg object-cover border border-gray-200 hover:opacity-80 transition-opacity"
+                                                    className="w-12 h-12 rounded-lg object-cover border-2 border-gray-400 hover:opacity-80 transition-opacity"
                                                 />
                                             </button>
                                         )}
-                                        <p className="text-xs text-gray-400 mt-0.5">
+                                        <p className="text-xs text-gray-700 mt-0.5">
                                             {isSystem ? (
-                                                <span className="font-medium text-gray-500">System</span>
+                                                <span className="font-semibold text-gray-900">System</span>
                                             ) : (
                                                 log.userName || log.userEmail || "Unknown"
                                             )}
@@ -422,7 +423,7 @@ export default function ActivityLogs() {
                                             {log.device && !isSystem ? ` · ${log.device}` : ""}
                                         </p>
                                     </div>
-                                    <div className="text-xs text-gray-400 flex-shrink-0 text-right">
+                                    <div className="text-xs text-gray-800 flex-shrink-0 text-right">
                                         {formatTimestamp(log.timestamp)}
                                     </div>
                                 </li>
@@ -432,7 +433,7 @@ export default function ActivityLogs() {
                 )}
 
                 {!loading && filteredLogs.length > 0 && (
-                    <div className="px-6 py-3 text-xs text-gray-400 border-t-2 border-gray-200">
+                    <div className="px-6 py-3 text-xs text-gray-800 border-t-2 border-gray-300">
                         Showing {filteredLogs.length} of {logs.length} recent events
                     </div>
                 )}
