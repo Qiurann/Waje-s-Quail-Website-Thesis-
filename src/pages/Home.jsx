@@ -188,7 +188,7 @@ export default function Home() {
         <div className="grid grid-cols-1 gap-6">
           {/* Recent Activity */}
           <div className="bg-white border border-gray-300 rounded-2xl p-6 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-4">Recent Activity</h3>
+            <h3 className="font-bold text-gray-900 mb-4">Recent Activities</h3>
             {recentActivity.length > 0 ? (
               <ul className="divide-y divide-gray-300">
                 {recentActivity.map((entry) => {
