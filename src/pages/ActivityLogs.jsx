@@ -229,22 +229,31 @@ export default function ActivityLogs() {
 
                 {/* Date range */}
                 <div className="flex flex-wrap items-center gap-2 mt-3">
-                    <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    {DATE_PRESETS.map((p) => (
-                        <button
-                            key={p.key}
-                            onClick={() => applyDatePreset(p.key)}
-                            className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors ${
-                                datePreset === p.key
-                                    ? "bg-[#2D5016] border-[#2D5016] text-white"
-                                    : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
-                            }`}
-                        >
-                            {p.label}
-                        </button>
-                    ))}
+                    <select
+                        value={datePreset === "custom" ? "custom" : datePreset}
+                        onChange={(e) => {
+                            const key = e.target.value;
+                            if (key === "custom") {
+                                // Just switch the dropdown into "custom" mode
+                                // without touching from/to — the date inputs
+                                // below already hold (or will hold) the
+                                // actual range.
+                                setDatePreset("custom");
+                                return;
+                            }
+                            applyDatePreset(key);
+                        }}
+                        className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none cursor-pointer"
+                    >
+                        {DATE_PRESETS.map((p) => (
+                            <option key={p.key} value={p.key}>
+                                {p.label}
+                            </option>
+                        ))}
+                        <option value="custom">Custom range</option>
+                    </select>
 
-                    <span className="text-xs text-gray-400 mx-1">or custom:</span>
+                    <span className="text-xs text-gray-400 mx-1">from</span>
 
                     <input
                         type="date"
@@ -254,7 +263,7 @@ export default function ActivityLogs() {
                             setDateFrom(e.target.value);
                             setDatePreset("custom");
                         }}
-                        className="px-3 py-1.5 rounded-full text-xs border border-gray-200 text-gray-600 bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none"
+                        className="px-3 py-1.5 rounded-full text-xs border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none"
                     />
                     <span className="text-xs text-gray-400">to</span>
                     <input
@@ -265,7 +274,7 @@ export default function ActivityLogs() {
                             setDateTo(e.target.value);
                             setDatePreset("custom");
                         }}
-                        className="px-3 py-1.5 rounded-full text-xs border border-gray-200 text-gray-600 bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none"
+                        className="px-3 py-1.5 rounded-full text-xs border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] outline-none"
                     />
 
                     {(dateFrom || dateTo) && (

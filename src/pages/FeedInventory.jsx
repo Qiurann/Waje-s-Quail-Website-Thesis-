@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, AlertTriangle, Plus, Package, MapPin, Search, Pencil, SquarePen, Trash2, X } from 'lucide-react';
+import { Plus, Search, Pencil, SquarePen, Trash2, X } from 'lucide-react';
 import { collection, doc, onSnapshot, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import LoadingScreen from '../components/LoadingScreen';
@@ -304,40 +304,28 @@ export default function FeedInventory() {
       <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-start justify-between mb-3">
-            <Package className="w-10 h-10 text-blue-600" />
-            <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">Value</span>
-          </div>
-          <div className="text-2xl font-bold text-blue-900 mb-1">{phpCurrency.format(totalInventoryValue)}</div>
-          <div className="text-sm text-blue-700">Total Inventory Value</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-2xl p-6">
+          <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Value</div>
+          <div className="text-2xl font-extrabold text-blue-700 mb-1">{phpCurrency.format(totalInventoryValue)}</div>
+          <div className="text-sm text-gray-500">Total Inventory Value</div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-start justify-between mb-3">
-            <ShoppingBag className="w-10 h-10 text-green-600" />
-            <span className="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-full">Items</span>
-          </div>
-          <div className="text-3xl font-bold text-green-900 mb-1">{inventoryItems.length}</div>
-          <div className="text-sm text-green-700">Total Items</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-green-500 rounded-2xl p-6">
+          <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Items</div>
+          <div className="text-3xl font-extrabold text-green-700 mb-1">{inventoryItems.length}</div>
+          <div className="text-sm text-gray-500">Total Items</div>
         </div>
 
-        <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-300 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-start justify-between mb-3">
-            <AlertTriangle className="w-10 h-10 text-red-600" />
-            <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">Alert</span>
-          </div>
-          <div className="text-3xl font-bold text-red-900 mb-1">{lowStockCount}</div>
-          <div className="text-sm text-red-700">Low Stock Items</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-red-500 rounded-2xl p-6">
+          <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Alert</div>
+          <div className="text-3xl font-extrabold text-red-700 mb-1">{lowStockCount}</div>
+          <div className="text-sm text-gray-500">Low Stock Items</div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-300 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-start justify-between mb-3">
-            <MapPin className="w-10 h-10 text-purple-600" />
-            <span className="bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">Locations</span>
-          </div>
-          <div className="text-3xl font-bold text-purple-900 mb-1">{uniqueLocations}</div>
-          <div className="text-sm text-purple-700">Stored Locations</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-purple-500 rounded-2xl p-6">
+          <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Locations</div>
+          <div className="text-3xl font-extrabold text-purple-700 mb-1">{uniqueLocations}</div>
+          <div className="text-sm text-gray-500">Stored Locations</div>
         </div>
       </div>
 

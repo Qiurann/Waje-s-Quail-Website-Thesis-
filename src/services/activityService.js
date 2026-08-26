@@ -351,7 +351,23 @@ export const subscribeToAuditTrail = (callback, entryLimit = 150) => {
                             userName: "System",
                             userEmail: "",
                             role: "automated",
-                            timestamp: entry.date,
+                            // The Android EggCountActivity writes both a
+                            // day-bucket "date" string (e.g. "2026-08-26",
+                            // used only as the record's key/grouping — see
+                            // saveCollectionToDatabase) and a real
+                            // millisecond "timestamp" (System.currentTimeMillis(),
+                            // refreshed on every save that day). Using
+                            // entry.date here parsed to midnight local/UTC
+                            // time for every entry, so every egg log on a
+                            // given day showed the exact same (wrong) time
+                            // and sorted as if it happened at the very start
+                            // of the day — ahead of everything else from
+                            // that day once merged with the other three
+                            // sources in emit(). Prefer the real timestamp;
+                            // fall back to entry.date only for any legacy
+                            // records saved before the "timestamp" field
+                            // existed.
+                            timestamp: entry.timestamp ?? entry.date,
                         };
                     })
                     // Capped independently to entryLimit (same as

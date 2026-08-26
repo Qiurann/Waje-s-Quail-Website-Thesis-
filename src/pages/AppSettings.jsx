@@ -104,10 +104,6 @@ function AppSettingsContent({ user }) {
                         <div className="flex items-center justify-between gap-4">
                             <div>
                                 <p className="font-semibold text-gray-900">Maintenance Mode</p>
-                                <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5">
-                                    <Smartphone className="w-3.5 h-3.5" />
-                                    Blocks the mobile app's login screen while it's on
-                                </p>
                             </div>
 
                             {/* Toggle */}
@@ -136,7 +132,7 @@ function AppSettingsContent({ user }) {
                             }`}
                         >
                             <span className={`w-1.5 h-1.5 rounded-full ${liveEnabled ? "bg-amber-500" : "bg-green-500"}`} />
-                            Currently {liveEnabled ? "ON — the mobile app is blocked" : "OFF — the mobile app is accessible"}
+                            Currently {liveEnabled ? "ON: the mobile app is blocked" : "OFF: the mobile app is accessible"}
                             {liveUpdatedBy ? ` · last changed by ${liveUpdatedBy}` : ""}
                         </div>
                     </div>
@@ -160,8 +156,7 @@ function AppSettingsContent({ user }) {
                         <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                         <span>
                             Turning this on will immediately stop anyone from logging into the
-                            mobile app. Staff already inside the app right now won't be kicked
-                            out — this only blocks new sign-ins.
+                            mobile app.
                         </span>
                     </div>
                 )}
