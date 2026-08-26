@@ -46,6 +46,11 @@ export default function Home() {
     }, (error) => {
       console.error("Error listening to egg_collections for Home page:", error);
       setSystemDown(true);
+      // Without this, a transient read error (e.g. permissions still
+      // propagating right after login) leaves `loading` stuck true forever,
+      // so the full-screen LoadingScreen overlay never goes away until the
+      // page is refreshed. Clear it here too so the dashboard still renders.
+      setLoading(false);
     });
 
     // 2. Listen to Firestore for Feed Inventory

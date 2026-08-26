@@ -78,6 +78,13 @@ body {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  /* The app's UI is always light (see the dark-mode note above) — this
+     guarantees #root itself is light from the very first paint, in plain
+     CSS rather than a Tailwind utility class, so there's never a gap
+     (e.g. between Login unmounting and Dashboard painting) where the
+     <html> element's dark background shows through as a full-screen
+     dark flash. */
+  background: #fff;
 }
 
 /* =========================
