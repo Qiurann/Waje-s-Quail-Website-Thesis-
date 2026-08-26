@@ -72,7 +72,7 @@ async function doReconcile() {
     userName: user.name,
     userEmail: user.email,
     role: user.role,
-    details: "Session ended automatically (browser/tab was closed without pressing Logout).",
+    details: "Owner Logout",
   });
 
   try {
