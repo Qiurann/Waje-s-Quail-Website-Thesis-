@@ -396,22 +396,27 @@ export default function ActivityLogs() {
                                         {log.details && (
                                             <p className="text-xs text-gray-700 mt-0.5">{log.details}</p>
                                         )}
-                                        {log.type === "task_complete" && log.imageBase64 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setLightboxImage(log.imageBase64);
-                                                    setLightboxZoomed(false);
-                                                }}
-                                                className="mt-1.5 block"
-                                                title="View proof photo"
-                                            >
-                                                <img
-                                                    src={`data:image/jpeg;base64,${log.imageBase64}`}
-                                                    alt="Proof of completion"
-                                                    className="w-12 h-12 rounded-lg object-cover border-2 border-gray-400 hover:opacity-80 transition-opacity"
-                                                />
-                                            </button>
+                                        {log.type === "task_complete" && log.images && log.images.length > 0 && (
+                                            <div className="mt-1.5 flex gap-1.5 flex-wrap">
+                                                {log.images.map((img, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setLightboxImage(img);
+                                                            setLightboxZoomed(false);
+                                                        }}
+                                                        className="block"
+                                                        title="View proof photo"
+                                                    >
+                                                        <img
+                                                            src={`data:image/jpeg;base64,${img}`}
+                                                            alt="Proof of completion"
+                                                            className="w-12 h-12 rounded-lg object-cover border-2 border-gray-400 hover:opacity-80 transition-opacity"
+                                                        />
+                                                    </button>
+                                                ))}
+                                            </div>
                                         )}
                                         <p className="text-xs text-gray-700 mt-0.5">
                                             {isSystem ? (

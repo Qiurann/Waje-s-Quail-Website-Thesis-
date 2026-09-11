@@ -494,7 +494,15 @@ export const subscribeToAuditTrail = (callback, entryLimit = 150) => {
                     // Mark-as-Done flow (both required there before the
                     // task can be marked Done).
                     details: t.doneComment || "",
-                    imageBase64: t.doneImageUrl || "",
+                    // The mobile app writes proof photos to the task doc as
+                    // "doneImageUrls" (a List<String> of Base64 JPEGs — see
+                    // ScheduleActivity.markTaskDoneInFirestore). This used to
+                    // read the non-existent singular "doneImageUrl", so no
+                    // proof photo ever showed up here. Normalize to an array
+                    // so multiple submitted photos are all retrievable.
+                    images: Array.isArray(t.doneImageUrls)
+                        ? t.doneImageUrls.filter(Boolean)
+                        : (t.doneImageUrl ? [t.doneImageUrl] : []),
                     timestamp: completedAt,
                 });
             }
