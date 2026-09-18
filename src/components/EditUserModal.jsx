@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
 import { updateUser } from "../services/userService";
 import { logActivity, getCurrentActor } from "../services/activityService";
-import { getPasswordErrors, sanitizeNameInput, getNameError } from "../utils/validation";
+import { sanitizeNameInput, getNameError } from "../utils/validation";
 
 // The <input type="date"> element only accepts "yyyy-MM-dd". Some existing
 // records (saved from elsewhere, e.g. "2026/06/05") don't match that, which
@@ -42,8 +41,6 @@ function toDateInputValue(raw) {
 export default function EditUserModal({ user, close, reload }) {
 
     const [loading, setLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const [form, setForm] = useState({
         name: user.name || "",
@@ -57,8 +54,6 @@ export default function EditUserModal({ user, close, reload }) {
         status: user.isActive === false
             ? "deactivated"
             : (user.status === "inactive" ? "approved" : (user.status || "approved")),
-        password: "",
-        confirmPassword: "",
         street: user.address?.street || "",
         city: user.address?.city || "",
         state: user.address?.state || "",
@@ -86,20 +81,6 @@ export default function EditUserModal({ user, close, reload }) {
         if (nameError) {
             alert(nameError);
             return;
-        }
-
-        const wantsPasswordChange = form.password.length > 0 || form.confirmPassword.length > 0;
-
-        if (wantsPasswordChange) {
-            const passwordErrors = getPasswordErrors(form.password);
-            if (passwordErrors.length > 0) {
-                alert(passwordErrors.join("\n"));
-                return;
-            }
-            if (form.password !== form.confirmPassword) {
-                alert("Passwords do not match.");
-                return;
-            }
         }
 
         setLoading(true);
@@ -130,10 +111,6 @@ export default function EditUserModal({ user, close, reload }) {
                 }
             };
 
-            if (wantsPasswordChange) {
-                updateData.password = form.password;
-            }
-
             await updateUser(user.email, updateData);
 
             // Build a human-readable summary of what changed for the audit trail.
@@ -147,7 +124,6 @@ export default function EditUserModal({ user, close, reload }) {
             if (form.city !== (user.address?.city || "")) changedFields.push("city");
             if (form.state !== (user.address?.state || "")) changedFields.push("province");
             if (form.postalCode !== (user.address?.postalCode || "")) changedFields.push("postal code");
-            if (wantsPasswordChange) changedFields.push("password");
 
             const actor = getCurrentActor();
 
@@ -238,64 +214,10 @@ export default function EditUserModal({ user, close, reload }) {
                             <option value="approved">
                                 Approved
                             </option>
-                            <option value="pending">
-                                Pending
-                            </option>
-                            <option value="invited">
-                                Invited
-                            </option>
                             <option value="deactivated">
                                 Deactivated
                             </option>
                         </select>
-                    </div>
-
-                    <div className="pt-2 border-t-2 border-gray-200">
-                        <p className="text-sm font-medium text-gray-700 mt-4 mb-1">
-                            Change Password
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="relative">
-                                <input
-                                    type={showPassword ? "text" : "password"}
-                                    name="password"
-                                    value={form.password}
-                                    onChange={handleChange}
-                                    placeholder="New Password"
-                                    autoComplete="new-password"
-                                    className="w-full border rounded-lg p-3 pr-10 text-gray-900 placeholder-gray-400"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                                    tabIndex={-1}
-                                >
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-
-                            <div className="relative">
-                                <input
-                                    type={showConfirmPassword ? "text" : "password"}
-                                    name="confirmPassword"
-                                    value={form.confirmPassword}
-                                    onChange={handleChange}
-                                    placeholder="Confirm New Password"
-                                    autoComplete="new-password"
-                                    className="w-full border rounded-lg p-3 pr-10 text-gray-900 placeholder-gray-400"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                                    tabIndex={-1}
-                                >
-                                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </div>
                     </div>
 
                     <input
