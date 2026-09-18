@@ -168,6 +168,11 @@ export default function FeedInventory() {
       return;
     }
 
+    if (editingItem.category === 'Supplements' && parsedQuantity > 99) {
+      setQuantityError('Quantity cannot exceed 99 for supplements.');
+      return;
+    }
+
     if (parsedQuantity === previousQuantity) {
       // Nothing actually changed — no need to write an update or log it.
       closeEditQuantity();
