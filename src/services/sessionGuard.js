@@ -1,5 +1,6 @@
 import { clearSession } from "../firebase";
 import { logActivity } from "./activityService";
+import { clearSessionStart, isSessionExpired } from "./sessionSecurity.js";
 
 /* ===========================================================================
    Session Guard
@@ -56,23 +57,27 @@ async function doReconcile() {
   }
 
   const marker = sessionStorage.getItem(TAB_SESSION_KEY);
+  const expired = isSessionExpired();
 
-  if (marker === user.uid) {
-    // Same tab, same session continuing (refresh or client-side navigation).
+  if (marker === user.uid && !expired) {
+    // Same tab, same session continuing (refresh or client-side navigation),
+    // and it hasn't outlived MAX_SESSION_MS since login.
     return { implicitLogout: false };
   }
 
-  // The tab that owned this login session is gone. Record the implicit
-  // logout once, then clear the stale session so this only ever fires once.
-  // (Logging must happen BEFORE clearSession — the activity_logs write
-  // requires sessions/{uid} to still exist per the Firestore rules.)
+  // Either the tab that owned this login session is gone, or the session
+  // has simply been open too long (see services/sessionSecurity.js). Record
+  // the implicit logout once, then clear the stale session so this only
+  // ever fires once. (Logging must happen BEFORE clearSession — the
+  // activity_logs write requires sessions/{uid} to still exist per the
+  // Firestore rules.)
   logActivity({
     type: "logout",
     message: `${user.name || user.email || "A user"} logged out`,
     userName: user.name,
     userEmail: user.email,
     role: user.role,
-    details: "Owner Logout",
+    details: expired ? "Session expired" : "Owner Logout",
   });
 
   try {
@@ -82,6 +87,7 @@ async function doReconcile() {
   }
 
   localStorage.removeItem("user");
+  clearSessionStart();
   sessionStorage.removeItem(TAB_SESSION_KEY);
 
   return { implicitLogout: true };

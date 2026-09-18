@@ -19,10 +19,18 @@ export const getUsers = async () => {
         collection(db, "user_access")
     );
 
-    return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
+    // user_access documents carry a plaintext `password` field (see
+    // Login.jsx). Nothing on the User Management page displays or needs
+    // it, so it's dropped here rather than left sitting in the browser's
+    // in-memory state (and inspectable via React/Redux devtools) for
+    // every staff member on every page load.
+    return snapshot.docs.map(doc => {
+        const { password: _password, ...safeData } = doc.data();
+        return {
+            id: doc.id,
+            ...safeData
+        };
+    });
 
 };
 
@@ -38,11 +46,15 @@ export const getUser = async (email) => {
 
     if (!snap.exists()) return null;
 
+    // See getUsers() above for why the plaintext password field is
+    // dropped here rather than passed through to the caller.
+    const { password: _password, ...safeData } = snap.data();
+
     return {
 
         id: snap.id,
 
-        ...snap.data()
+        ...safeData
 
     };
 

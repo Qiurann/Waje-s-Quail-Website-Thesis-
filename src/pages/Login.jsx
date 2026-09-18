@@ -7,6 +7,19 @@ import { toast } from 'sonner';
 import LoadingScreen from '../components/LoadingScreen';
 import { logActivity } from '../services/activityService';
 import { claimTabForSession } from '../services/sessionGuard';
+import {
+  markSessionStart,
+  getLoginLockState,
+  recordFailedLogin,
+  clearLoginAttempts,
+} from '../services/sessionSecurity.js';
+
+// Generic on purpose: shown for a wrong password, an email that doesn't
+// exist, AND a valid staff (non-owner) login. Distinguishing between those
+// cases in the UI would let an attacker use this form as an oracle to
+// confirm a real email address, or even a real staff email+password pair,
+// without ever needing owner access.
+const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -30,6 +43,16 @@ export default function Login() {
     const emailValue = (formData.get('email') || email || '').toString().trim();
     const passwordValue = (formData.get('password') || password || '').toString();
 
+    // Too many recent failures for this email on this browser — don't even
+    // touch Firestore. See services/sessionSecurity.js for what this does
+    // and doesn't protect against.
+    const lockState = getLoginLockState(emailValue);
+    if (lockState.locked) {
+      const minutesLeft = Math.max(1, Math.ceil(lockState.remainingMs / 60000));
+      toast.error(`Too many failed attempts. Try again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.`);
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -52,8 +75,32 @@ export default function Login() {
       const q = query(usersRef, where('email', '==', emailValue), where('password', '==', passwordValue));
       const querySnapshot = await getDocs(q);
 
+      // Records the failure, logs it for the owner's audit trail, and
+      // throws the generic message shown in the UI. If this attempt was
+      // the one that crossed the lockout threshold, logs that separately
+      // too so a brute-force burst is easy to spot in Activity Logs.
+      const failLogin = (details, extra = {}) => {
+        const state = recordFailedLogin(emailValue);
+        logActivity({
+          type: 'login_failed',
+          message: `Failed login attempt for ${emailValue}`,
+          userEmail: emailValue,
+          details,
+          ...extra,
+        });
+        if (state.lockedUntil) {
+          logActivity({
+            type: 'login_locked',
+            message: `${emailValue} locked out after repeated failed login attempts`,
+            userEmail: emailValue,
+            details: `${state.count} failed attempts in a row.`,
+          });
+        }
+        throw new Error(INVALID_CREDENTIALS_MESSAGE);
+      };
+
       if (querySnapshot.empty) {
-        throw new Error('Invalid email or password.');
+        failLogin('No matching email/password.');
       }
 
       // Login success
@@ -61,9 +108,15 @@ export default function Login() {
 
       // The website is owner-only. Staff accounts are for the mobile app;
       // block them here before any session doc is written so a staff
-      // login never reaches the dashboard.
+      // login never reaches the dashboard. The error shown to the user is
+      // intentionally the same generic message as above — see
+      // INVALID_CREDENTIALS_MESSAGE — even though we log the real reason
+      // here for the owner's audit trail.
       if (userData.role !== 'owner') {
-        throw new Error('You do not have the authority to access this website. Please use the mobile app instead.');
+        failLogin('Valid staff credentials used on the owner-only website.', {
+          userName: userData.name,
+          role: userData.role,
+        });
       }
 
       // The Firestore rules key every privileged read/write off
@@ -101,8 +154,22 @@ export default function Login() {
 
       // Store uid alongside the profile so Dashboard.handleLogout can call
       // clearSession(user.uid) to remove the session doc again.
-      const sessionUser = { ...userData, uid };
+      //
+      // Deliberately exclude `password`: userData is the raw Firestore
+      // doc, which still has the plaintext password field on it (see the
+      // query above). Without this, that password sat in localStorage —
+      // in the clear, indefinitely, readable by any script on the page —
+      // for the entire session even though nothing on the website ever
+      // needs it after login.
+      const { password: _password, ...safeUserData } = userData;
+      const sessionUser = { ...safeUserData, uid };
       localStorage.setItem('user', JSON.stringify(sessionUser)); // Basic session management
+
+      // Starts the absolute-session-lifetime clock and clears any past
+      // failed-attempt lockout for this email now that it's succeeded.
+      // See services/sessionSecurity.js.
+      markSessionStart();
+      clearLoginAttempts(emailValue);
 
       // Tells Dashboard this is a fresh login (as opposed to a refresh or
       // in-app navigation) so it can start with the sidebar collapsed

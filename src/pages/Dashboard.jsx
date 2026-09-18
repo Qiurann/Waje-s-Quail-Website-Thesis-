@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { clearSession } from '../firebase';
 import { logActivity } from '../services/activityService';
 import { releaseTabSession } from '../services/sessionGuard';
+import { clearSessionStart, isSessionExpired, IDLE_TIMEOUT_MS } from '../services/sessionSecurity';
 
 // Sidebar width bounds (px) for the drag-to-resize handle. These match the
 // two fixed states the click-to-toggle button already used (w-20 / w-64),
@@ -81,7 +82,7 @@ export default function Dashboard() {
   // doesn't wrap/overflow mid-drag before it snaps to the expanded width.
   const showLabels = currentWidth > SNAP_THRESHOLD;
 
-  const handleLogout = async () => {
+  const handleLogout = async (reason) => {
     // Log the activity BEFORE clearing the session — activity_logs writes
     // require sessions/{uid} to still exist per the Firestore rules (see
     // firebase.js). Clearing the session first causes this write to be
@@ -92,6 +93,7 @@ export default function Dashboard() {
       userName: user?.name,
       userEmail: user?.email,
       role: user?.role,
+      details: reason || 'Owner Logout',
     });
 
     try {
@@ -101,13 +103,53 @@ export default function Dashboard() {
     }
 
     localStorage.removeItem('user');
+    clearSessionStart();
     // Release this tab's session marker so the session guard doesn't try to
     // record a second (duplicate) Logout if the user later closes this same
     // tab or refreshes at the login page. See services/sessionGuard.js.
     releaseTabSession();
-    toast.success('Successfully logged out');
+    if (!reason) toast.success('Successfully logged out');
     navigate('/');
   };
+
+  // Auto-logout on inactivity, and a periodic check for the absolute
+  // session lifetime cap — both defined in services/sessionSecurity.js.
+  // See that file for why this exists: the website otherwise trusts a
+  // signed-in browser tab forever, with no server-side session expiry.
+  useEffect(() => {
+    let idleTimer;
+
+    const onIdleTimeout = () => {
+      toast.error("You've been signed out due to inactivity.");
+      handleLogout('Idle timeout');
+    };
+
+    const resetIdleTimer = () => {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(onIdleTimeout, IDLE_TIMEOUT_MS);
+    };
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    activityEvents.forEach((evt) => window.addEventListener(evt, resetIdleTimer));
+    resetIdleTimer();
+
+    // Runs even if the user stays continuously active (which would keep
+    // resetting the idle timer above forever), so a long-lived but
+    // otherwise-active session still gets capped.
+    const expiryInterval = setInterval(() => {
+      if (isSessionExpired()) {
+        toast.error('Your session has expired. Please sign in again.');
+        handleLogout('Session expired');
+      }
+    }, 60 * 1000);
+
+    return () => {
+      clearTimeout(idleTimer);
+      clearInterval(expiryInterval);
+      activityEvents.forEach((evt) => window.removeEventListener(evt, resetIdleTimer));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const mainNavItems = [
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
@@ -122,7 +164,7 @@ export default function Dashboard() {
   ];
 
   const bottomNavItems = [
-    { icon: LogOut, label: 'Logout', action: handleLogout },
+    { icon: LogOut, label: 'Logout', action: () => handleLogout() },
   ];
 
   return (
