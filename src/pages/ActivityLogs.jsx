@@ -44,8 +44,6 @@ const FILTERS = [
     "all",
     "login",
     "logout",
-    "login_failed",
-    "login_locked",
     "create",
     "update",
     "delete",
