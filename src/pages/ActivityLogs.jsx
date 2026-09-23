@@ -15,20 +15,12 @@ import {
     X,
     ZoomIn,
     ZoomOut,
-    ShieldAlert,
-    Lock,
 } from "lucide-react";
 import { subscribeToAuditTrail } from "../services/activityService";
 
 const TYPE_META = {
     login: { label: "Login", icon: LogIn, color: "text-green-600 bg-green-100" },
     logout: { label: "Logout", icon: LogOut, color: "text-gray-600 bg-gray-100" },
-    // Failed login attempts (wrong credentials, or valid staff credentials
-    // blocked from the owner-only website) — see pages/Login.jsx.
-    login_failed: { label: "Failed Login", icon: ShieldAlert, color: "text-red-600 bg-red-100" },
-    // An email got locked out after repeated failed attempts in a row —
-    // see services/sessionSecurity.js.
-    login_locked: { label: "Login Locked", icon: Lock, color: "text-red-700 bg-red-100" },
     create: { label: "Created", icon: UserPlus, color: "text-blue-600 bg-blue-100" },
     update: { label: "Updated", icon: Pencil, color: "text-amber-600 bg-amber-100" },
     delete: { label: "Deleted", icon: Trash2, color: "text-red-600 bg-red-100" },
@@ -39,6 +31,9 @@ const TYPE_META = {
     // pages/AppSettings.jsx handleSave.
     maintenance: { label: "Maintenance", icon: Wrench, color: "text-purple-600 bg-purple-100" },
 };
+
+// Event types that are recorded elsewhere but intentionally not shown here.
+const HIDDEN_TYPES = new Set(["login_failed", "login_locked"]);
 
 const FILTERS = [
     "all",
@@ -163,7 +158,7 @@ export default function ActivityLogs() {
 
     useEffect(() => {
         const unsubscribe = subscribeToAuditTrail((data) => {
-            setLogs(data);
+            setLogs(data.filter((log) => !HIDDEN_TYPES.has(log.type)));
             setLoading(false);
         });
         return () => unsubscribe();
